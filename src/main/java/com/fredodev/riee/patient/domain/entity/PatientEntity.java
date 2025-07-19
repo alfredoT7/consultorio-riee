@@ -21,6 +21,9 @@ public class PatientEntity {
     @Column(nullable = false, unique = true)
     private long ciPaciente;
 
+    @Column(name = "email",nullable = false, unique = false)
+    private String email;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "estado_civil_id", nullable = false)
     private CivilStatusEntity estadoCivil;

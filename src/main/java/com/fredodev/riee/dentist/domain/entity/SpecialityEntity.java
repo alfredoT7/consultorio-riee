@@ -1,4 +1,4 @@
-package com.fredodev.riee.treatment.domain.entity;
+package com.fredodev.riee.dentist.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,23 +6,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
-@Table(name = "dental_pieces")
+@Table(name = "specialities")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DentalPieceEntity {
+public class SpecialityEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "numero", nullable = false)
-    private String numero;
-
-    @Column(name = "nombre")
+    @Column(nullable = false, unique = true)
     private String nombre;
 
-    @Column(name = "cuadrante")
-    private String cuadrante;
+    @Column(length = 500)
+    private String descripcion;
+
 }
