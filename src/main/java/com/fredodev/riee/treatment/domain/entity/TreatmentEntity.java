@@ -30,7 +30,4 @@ public class TreatmentEntity{
     private int costoBaseTratamiento;
     @Column(name = "notas_adicionales", length = 500)
     private String notasAdicionales;
-//    @ManyToOne
-//    @JoinColumn(name = "tipo_tratamiento_id")
-//    private TreatmentTypeEntity tipoTratamiento;
 }
