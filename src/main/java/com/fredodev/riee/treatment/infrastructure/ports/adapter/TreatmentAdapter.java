@@ -1,6 +1,6 @@
-package com.fredodev.riee.treatment.infrastructure.port.adapter;
+package com.fredodev.riee.treatment.infrastructure.ports.adapter;
 
-import com.fredodev.riee.treatment.infrastructure.port.persistence.JpaTreatmentRepository;
+import com.fredodev.riee.treatment.infrastructure.ports.persistence.JpaTreatmentRepository;
 import org.springframework.stereotype.Repository;
 
 import com.fredodev.riee.treatment.domain.entity.TreatmentEntity;

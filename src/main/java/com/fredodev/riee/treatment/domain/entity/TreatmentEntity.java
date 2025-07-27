@@ -30,4 +30,6 @@ public class TreatmentEntity{
     private int costoBaseTratamiento;
     @Column(name = "notas_adicionales", length = 500)
     private String notasAdicionales;
+    @Column(name = "imagen_referencial")
+    private String imagen_referencial;
 }
