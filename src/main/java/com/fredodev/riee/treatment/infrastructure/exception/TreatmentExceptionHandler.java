@@ -31,6 +31,7 @@ public class TreatmentExceptionHandler {
         body.put("message", ex.getMessage());
         body.put("status", HttpStatus.CONFLICT.value());
 
+
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
     }
 }

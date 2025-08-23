@@ -29,6 +29,8 @@ public class SecurityConfig {
                             auth.requestMatchers("hola").permitAll();
                             auth.requestMatchers("/api/v1/pacientes/**").permitAll();
                             auth.requestMatchers("/api/v1/riee/patients/**").permitAll();
+                            auth.requestMatchers("/api/v1/riee/treatments").permitAll();
+                            auth.requestMatchers("/api/v1/riee/treatments/**").permitAll();
                             auth.requestMatchers("/api/**").permitAll();
                             auth.anyRequest().authenticated();
                         }

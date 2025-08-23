@@ -1,5 +1,6 @@
 package com.fredodev.riee.treatment.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class TreatmentHistoryImageEntity {
 
     @ManyToOne
     @JoinColumn(name = "treatment_history_id")
+    //@JsonIgnore
     private TreatmentHistoryEntity treatmentHistory;
 
     @PrePersist

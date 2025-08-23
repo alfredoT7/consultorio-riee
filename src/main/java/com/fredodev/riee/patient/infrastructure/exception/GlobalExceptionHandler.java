@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleGenericException(Exception ex) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
-        body.put("message", "Ocurrió un error en el servidor");
+        body.put("message", ex.getMessage());
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
