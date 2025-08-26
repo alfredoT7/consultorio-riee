@@ -32,6 +32,11 @@ public class SecurityConfig {
                             auth.requestMatchers("/api/v1/riee/treatments").permitAll();
                             auth.requestMatchers("/api/v1/riee/treatments/**").permitAll();
                             auth.requestMatchers("/api/**").permitAll();
+                            //swagger documentacion
+                            auth.requestMatchers("/swagger-ui.html").permitAll();
+                            auth.requestMatchers("/swagger-ui/**").permitAll();
+                            auth.requestMatchers("/api-docs/**").permitAll();
+                            //
                             auth.anyRequest().authenticated();
                         }
                 )
