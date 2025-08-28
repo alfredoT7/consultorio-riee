@@ -1,0 +1,47 @@
+package com.fredodev.riee.appointment.infrastructure.ports.adapter;
+
+import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
+import com.fredodev.riee.appointment.domain.exception.AppointmentNotFoundException;
+import com.fredodev.riee.appointment.domain.repository.AppointmentRepository;
+import com.fredodev.riee.appointment.infrastructure.ports.persistance.JpaAppointmentRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@RequiredArgsConstructor
+@Repository
+public class AppointmentAdapter implements AppointmentRepository {
+    private final JpaAppointmentRepository jpaAppointmentRepository;
+
+    @Override
+    public AppointmentEntity save(AppointmentEntity appointmentEntity) {
+        return jpaAppointmentRepository.save(appointmentEntity);
+    }
+
+    @Override
+    public AppointmentEntity findById(Long id) {
+        return jpaAppointmentRepository.findById(id)
+                .orElseThrow(() -> new AppointmentNotFoundException(id));
+    }
+
+    @Override
+    public boolean existsById(Long id) {
+        return jpaAppointmentRepository.existsById(id);
+    }
+
+    @Override
+    public List<AppointmentEntity> findAll() {
+        return jpaAppointmentRepository.findAll();
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        jpaAppointmentRepository.deleteById(id);
+    }
+
+    @Override
+    public List<AppointmentEntity> findByCiPaciente(int ciPaciente) {
+        return jpaAppointmentRepository.findByCiPaciente(ciPaciente);
+    }
+}

@@ -8,17 +8,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface AppointmentRepository extends JpaRepository<AppointmentEntity,Long> {
-
+public interface AppointmentRepository {
     AppointmentEntity save(AppointmentEntity appointmentEntity);
-    Optional<AppointmentEntity> findById(Long id);
+    AppointmentEntity findById(Long id);
     boolean existsById(Long id);
     List<AppointmentEntity> findAll();
     void deleteById(Long id);
-
-    @Query("SELECT a FROM AppointmentEntity a WHERE a.patient.ciPaciente = :ciPaciente")
-    List<AppointmentEntity> findByCiPaciente(@Param("ciPaciente") int ciPaciente);
-
-
-
+    List<AppointmentEntity> findByCiPaciente(int ciPaciente);
 }

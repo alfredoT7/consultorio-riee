@@ -5,15 +5,27 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Date;
+import java.sql.Time;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppointmentResponse {
     private Long id;
-    private String fechaCita;
-    private String horaCita;
+    private Date fechaCita;
+    private Time horaCita;
+    private String motivoCita;
     private String estadoCita;
+    private String observacionesCita;
+    private Long duracionEstimada;
     private Long patientId;
-    private Long treatmentId;
+    private String patientNombre;
+    private String patientApellido;
+    private long patientCi;
+    private String patientEmail;
+    private String patientDireccion;
+    private Long appointmentStatusId;
+    private String appointmentStatusName;
 }

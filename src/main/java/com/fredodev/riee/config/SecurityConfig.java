@@ -37,6 +37,9 @@ public class SecurityConfig {
                             auth.requestMatchers("/swagger-ui/**").permitAll();
                             auth.requestMatchers("/api-docs/**").permitAll();
                             //
+                            auth.requestMatchers("/api/v1/riee/appointments").permitAll();
+                            auth.requestMatchers("/api/v1/riee/appointments/**").permitAll();
+
                             auth.anyRequest().authenticated();
                         }
                 )

@@ -17,10 +17,12 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("CONSULTORIO RIEE API")
                         .version("1.1")
-                        .description("API documentation for RIEE application")
+                        .description("""
+                                alfredotorricodev@outlook.com
+                                """)
                         .contact(new Contact()
                                 .name("ALFREDO TORRICO GARCIA")
-                                .email("contact@fredodev.com")
+                                .email("alfredotorricodev@outlook.com")
                                 .url("https://fredodev.com"))
                         .license(new License()
                                 .name("Apache 2.0")
