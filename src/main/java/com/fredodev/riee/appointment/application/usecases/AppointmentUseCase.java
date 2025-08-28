@@ -5,12 +5,14 @@ import com.fredodev.riee.appointment.application.dto.AppointmentResponse;
 import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
 import com.fredodev.riee.appointment.domain.entity.AppointmentStatusEntity;
 import com.fredodev.riee.appointment.domain.exception.AppointmentNotFoundException;
+import com.fredodev.riee.appointment.domain.exception.InvalidAppointmentException;
 import com.fredodev.riee.appointment.domain.service.AppointmentDomainService;
 import com.fredodev.riee.patient.domain.entity.PatientEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,6 +24,23 @@ public class AppointmentUseCase {
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
+        java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+        java.time.LocalTime now = java.time.LocalTime.now();
+        if (request.getFechaCita() == null || request.getHoraCita() == null) {
+            throw new InvalidAppointmentException("Appointment date and time are required.");
+        }
+        if (request.getFechaCita().before(today)) {
+            throw new InvalidAppointmentException("Cannot schedule appointments in the past.");
+        }
+        if (request.getFechaCita().equals(today) && request.getHoraCita().toLocalTime().isBefore(now)) {
+            throw new InvalidAppointmentException("Cannot schedule appointments for past times today.");
+        }
+        LocalTime startHour = LocalTime.of(8, 0);
+        LocalTime endHour = LocalTime.of(22, 0);
+        LocalTime appointmentTime = request.getHoraCita().toLocalTime();
+        if (appointmentTime.isBefore(startHour) || appointmentTime.isAfter(endHour)) {
+            throw new InvalidAppointmentException("Appointments must be scheduled between 08:00 and 18:00.");
+        }
         AppointmentEntity appointmentEntity = mapToEntity(request);
         AppointmentEntity savedAppointment = appointmentDomainService.save(appointmentEntity);
         return mapToResponse(savedAppointment);
