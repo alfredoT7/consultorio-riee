@@ -13,7 +13,7 @@ import java.util.Optional;
 public class TreatmentDomainService {
     private final TreatmentRepository treatmentRepository;
 
-    public  TreatmentDomainService(TreatmentRepository treatmentRepository) {
+    public TreatmentDomainService(TreatmentRepository treatmentRepository) {
         this.treatmentRepository = treatmentRepository;
     }
 
