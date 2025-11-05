@@ -48,7 +48,7 @@ public class DentistDomainValidator {
         }
 
         if (request.getTelefono() != null) {
-            Optional<DentistEntity> byPhone = dentistRepository.findByTelefono(String.valueOf(request.getTelefono()));
+            Optional<DentistEntity> byPhone = dentistRepository.findByTelefono(request.getTelefono());
             if (byPhone.isPresent() && !byPhone.get().getId().equals(id)) {
                 throw new InvalidDentistException("Phone already in use by another dentist");
             }

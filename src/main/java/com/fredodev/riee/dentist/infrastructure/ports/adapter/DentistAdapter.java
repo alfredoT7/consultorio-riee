@@ -70,7 +70,7 @@ public class DentistAdapter implements DentistRepository {
     }
 
     @Override
-    public Optional<DentistEntity> findByTelefono(String telefono) {
+    public Optional<DentistEntity> findByTelefono(Long telefono) {
         return jpaDentistRepository.findByTelefono(telefono);
     }
 }

@@ -19,5 +19,5 @@ public interface DentistRepository {
     Optional<DentistEntity> findByEmail(String email);
     Optional<DentistEntity> findByUsername(String username);
     Optional<DentistEntity> findByCiDentista(Long ciDentista);
-    Optional<DentistEntity> findByTelefono(String telefono);
+    Optional<DentistEntity> findByTelefono(Long telefono);
 }

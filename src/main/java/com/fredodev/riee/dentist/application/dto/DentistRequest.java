@@ -45,5 +45,7 @@ public class DentistRequest {
             message = "La imagen debe ser una URL válida que empiece con http:// o https://"
     )
     private String imagenUrl;
+
+    // IDs de especialidades
     private List<Long> especialidadIds;
 }
