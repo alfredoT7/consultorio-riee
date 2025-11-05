@@ -1,12 +1,7 @@
 package com.fredodev.riee.dentist.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
+import lombok.*;
 
 @Entity
 @Table(name = "specialities")
@@ -22,7 +17,7 @@ public class SpecialityEntity {
     @Column(nullable = false, unique = true)
     private String nombre;
 
-    @Column(length = 500)
+    @Column(length = 1000)
     private String descripcion;
-
 }
+
