@@ -40,7 +40,10 @@ public class SecurityConfig {
                     "auth/**",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
-                    "/swagger-ui.html"
+                    "/swagger-ui.html",
+                    // make specialities endpoints public
+                    "/specialities/**",
+                    "/api/v1/riee/specialities/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

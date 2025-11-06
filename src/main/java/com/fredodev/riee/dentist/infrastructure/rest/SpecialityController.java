@@ -3,6 +3,7 @@ package com.fredodev.riee.dentist.infrastructure.rest;
 import com.fredodev.riee.dentist.application.dto.SpecialityRequest;
 import com.fredodev.riee.dentist.application.dto.SpecialityResponse;
 import com.fredodev.riee.dentist.application.service.SpecialityService;
+import com.fredodev.riee.shared.api.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +31,9 @@ public class SpecialityController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SpecialityResponse>> getAllSpecialities() {
-        return ResponseEntity.ok(specialityService.getAllSpecialities());
+    public ResponseEntity<ApiResponse<List<SpecialityResponse>>> getAllSpecialities() {
+        List<SpecialityResponse> list = specialityService.getAllSpecialities();
+        return ResponseEntity.ok(ApiResponse.ok(200, "Specialities found", list));
     }
 
     @DeleteMapping("/{id}")
