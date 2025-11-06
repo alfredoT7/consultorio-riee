@@ -17,13 +17,6 @@ import java.util.List;
 public class DentistController {
     private final DentistService dentistService;
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<DentistResponse>> createDentist(@RequestBody DentistRequest request) {
-        DentistResponse response = dentistService.registerDentist(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(HttpStatus.CREATED.value(), "Dentist created successfully", response));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DentistResponse>> updateDentist(@PathVariable Long id, @RequestBody DentistRequest request) {
         DentistResponse response = dentistService.updateDentist(id, request);

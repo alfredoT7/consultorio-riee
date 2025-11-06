@@ -3,27 +3,27 @@ package com.fredodev.riee.dentist.application.usecases;
 import com.fredodev.riee.dentist.application.dto.DentistRequest;
 import com.fredodev.riee.dentist.application.dto.DentistResponse;
 import com.fredodev.riee.dentist.domain.entity.DentistEntity;
-import com.fredodev.riee.dentist.domain.entity.DentistSpecialityEntity;
 import com.fredodev.riee.dentist.domain.entity.SpecialityEntity;
 import com.fredodev.riee.dentist.domain.exception.InvalidDentistException;
 import com.fredodev.riee.dentist.domain.service.DentistDomainService;
 import com.fredodev.riee.dentist.domain.service.DentistDomainValidator;
 import com.fredodev.riee.dentist.domain.repository.SpecialityRepository;
 import com.fredodev.riee.dentist.infrastructure.ports.persistence.JpaDentistSpecialityRepository;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class DentistUseCase {
     private final DentistDomainService dentistDomainService;
+    private final JpaDentistSpecialityRepository dentistSpecialityRepository;
     private final DentistDomainValidator dentistDomainValidator;
     private final SpecialityRepository specialityRepository;
-    private final JpaDentistSpecialityRepository dentistSpecialityRepository;
 
     @Transactional
     public DentistResponse registerDentist(DentistRequest request) {
@@ -37,40 +37,10 @@ public class DentistUseCase {
     public DentistResponse updateDentist(Long id, DentistRequest request) {
         dentistDomainValidator.validateBeforeUpdate(id, request);
         DentistEntity existing = dentistDomainService.getDentistById(id)
-            .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
+                .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
 
-        // Update basic fields
-        existing.setNombres(request.getNombres());
-        existing.setApellidos(request.getApellidos());
-        existing.setEmail(request.getEmail());
-        existing.setUsername(request.getUsername());
-        existing.setTelefono(request.getTelefono());
-        existing.setCiDentista(request.getCiDentista());
-        existing.setUniversidad(request.getUniversidad());
-        existing.setPromocion(request.getPromocion());
-        existing.setImagenUrl(request.getImagenUrl());
-
-        // Delete old specialities and create new ones
-        if (request.getEspecialidadIds() != null) {
-            dentistSpecialityRepository.deleteAllByDentistId(id);
-
-            if (!request.getEspecialidadIds().isEmpty()) {
-                List<DentistSpecialityEntity> newSpecialities = new ArrayList<>();
-                for (Long especialidadId : request.getEspecialidadIds()) {
-                    SpecialityEntity speciality = specialityRepository.findById(especialidadId)
-                        .orElseThrow(() -> new InvalidDentistException("Speciality not found: " + especialidadId));
-                    DentistSpecialityEntity dentistSpeciality = DentistSpecialityEntity.builder()
-                        .dentist(existing)
-                        .speciality(speciality)
-                        .build();
-                    newSpecialities.add(dentistSpeciality);
-                }
-                dentistSpecialityRepository.saveAll(newSpecialities);
-                existing.setSpecialities(newSpecialities);
-            } else {
-                existing.setSpecialities(new ArrayList<>());
-            }
-        }
+        updateBasicFields(existing, request);
+        updateSpecialities(existing, request.getEspecialidadIds());
 
         DentistEntity updated = dentistDomainService.editDentistDetail(existing);
         return mapToResponse(updated);
@@ -78,51 +48,80 @@ public class DentistUseCase {
 
     public DentistResponse getDentistById(Long id) {
         DentistEntity entity = dentistDomainService.getDentistById(id)
-            .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
+                .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
         return mapToResponse(entity);
     }
 
     public List<DentistResponse> getAllDentists() {
         return dentistDomainService.getAllDentist().stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional
     public void deleteDentist(Long id) {
-        // Verify dentist exists before deleting
         dentistDomainService.getDentistById(id)
-            .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
-        // Delete specialities first (optional, cascade will handle it)
+                .orElseThrow(() -> new InvalidDentistException("Dentist not found"));
         dentistSpecialityRepository.deleteAllByDentistId(id);
         dentistDomainService.deleteDentist(id);
     }
 
+    private void updateBasicFields(DentistEntity entity, DentistRequest request) {
+        entity.setNombres(request.getNombres());
+        entity.setApellidos(request.getApellidos());
+        entity.setEmail(request.getEmail());
+        entity.setUsername(request.getUsername());
+        entity.setTelefono(request.getTelefono());
+        entity.setCiDentista(request.getCiDentista());
+        entity.setUniversidad(request.getUniversidad());
+        entity.setPromocion(request.getPromocion());
+        entity.setImagenUrl(request.getImagenUrl());
+    }
+
+    private void updateSpecialities(DentistEntity entity, List<Long> especialidadIds) {
+        if (especialidadIds != null) {
+            // delete existing links in dentist_specialities table (if any)
+            dentistSpecialityRepository.deleteAllByDentistId(entity.getId());
+
+            if (!especialidadIds.isEmpty()) {
+                List<SpecialityEntity> newSpecialities = new ArrayList<>();
+
+                for (Long especialidadId : especialidadIds) {
+                    SpecialityEntity speciality = specialityRepository.findById(especialidadId)
+                            .orElseThrow(() -> new InvalidDentistException("Speciality not found: " + especialidadId));
+
+                    newSpecialities.add(speciality);
+                }
+
+                // set the SpecialityEntity list on the DentistEntity (ManyToMany)
+                entity.setSpecialities(newSpecialities);
+            } else {
+                entity.setSpecialities(new ArrayList<>());
+            }
+        }
+    }
+
     private DentistEntity mapToEntity(DentistRequest request) {
         DentistEntity entity = DentistEntity.builder()
-            .nombres(request.getNombres())
-            .apellidos(request.getApellidos())
-            .email(request.getEmail())
-            .username(request.getUsername())
-            .telefono(request.getTelefono())
-            .ciDentista(request.getCiDentista())
-            .universidad(request.getUniversidad())
-            .promocion(request.getPromocion())
-            .imagenUrl(request.getImagenUrl())
-            .password("default")
-            .specialities(new ArrayList<>())
-            .build();
+                .nombres(request.getNombres())
+                .apellidos(request.getApellidos())
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .telefono(request.getTelefono())
+                .ciDentista(request.getCiDentista())
+                .universidad(request.getUniversidad())
+                .promocion(request.getPromocion())
+                .imagenUrl(request.getImagenUrl())
+                .password("default")
+                .specialities(new ArrayList<>())
+                .build();
 
         if (request.getEspecialidadIds() != null && !request.getEspecialidadIds().isEmpty()) {
-            List<DentistSpecialityEntity> specialities = new ArrayList<>();
+            List<SpecialityEntity> specialities = new ArrayList<>();
             for (Long especialidadId : request.getEspecialidadIds()) {
                 SpecialityEntity speciality = specialityRepository.findById(especialidadId)
-                    .orElseThrow(() -> new InvalidDentistException("Speciality not found: " + especialidadId));
-                DentistSpecialityEntity dentistSpeciality = DentistSpecialityEntity.builder()
-                    .dentist(entity)
-                    .speciality(speciality)
-                    .build();
-                specialities.add(dentistSpeciality);
+                        .orElseThrow(() -> new InvalidDentistException("Speciality not found: " + especialidadId));
+                specialities.add(speciality);
             }
             entity.setSpecialities(specialities);
         }
@@ -132,25 +131,22 @@ public class DentistUseCase {
 
     private DentistResponse mapToResponse(DentistEntity entity) {
         List<String> especialidades = entity.getSpecialities() != null && !entity.getSpecialities().isEmpty() ?
-            entity.getSpecialities().stream()
-                .map(ds -> ds.getSpeciality().getNombre())
-                .collect(Collectors.toList()) : new ArrayList<>();
+                entity.getSpecialities().stream()
+                        .map(SpecialityEntity::getNombre)
+                        .collect(Collectors.toList()) : new ArrayList<>();
 
         return DentistResponse.builder()
-            .id(entity.getId())
-            .nombres(entity.getNombres())
-            .apellidos(entity.getApellidos())
-            .email(entity.getEmail())
-            .username(entity.getUsername())
-            .telefono(entity.getTelefono())
-            .ciDentista(entity.getCiDentista())
-            .universidad(entity.getUniversidad())
-            .promocion(entity.getPromocion())
-            .imagenUrl(entity.getImagenUrl())
-            .especialidades(especialidades)
-            .build();
+                .id(entity.getId())
+                .nombres(entity.getNombres())
+                .apellidos(entity.getApellidos())
+                .email(entity.getEmail())
+                .username(entity.getUsername())
+                .telefono(entity.getTelefono() != null ? String.valueOf(entity.getTelefono()) : null)
+                .ciDentista(entity.getCiDentista() != null ? String.valueOf(entity.getCiDentista()) : null)
+                .universidad(entity.getUniversidad())
+                .promocion(entity.getPromocion() != null ? String.valueOf(entity.getPromocion()) : null)
+                .imagenUrl(entity.getImagenUrl())
+                .especialidades(especialidades)
+                .build();
     }
 }
-
-
-

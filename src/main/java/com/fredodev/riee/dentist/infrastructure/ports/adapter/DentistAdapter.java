@@ -35,11 +35,6 @@ public class DentistAdapter implements DentistRepository {
     }
 
     @Override
-    public DentistEntity edit(DentistEntity dentistToEdit) {
-        return jpaDentistRepository.save(dentistToEdit);
-    }
-
-    @Override
     public boolean existsByEmail(String email) {
         return jpaDentistRepository.existsByEmail(email);
     }
@@ -52,6 +47,11 @@ public class DentistAdapter implements DentistRepository {
     @Override
     public boolean existsByCiDentista(Long ciDentista) {
         return jpaDentistRepository.existsByCiDentista(ciDentista);
+    }
+
+    @Override
+    public boolean existsByTelefono(Long telefono) {
+        return jpaDentistRepository.existsByTelefono(telefono);
     }
 
     @Override
@@ -72,5 +72,10 @@ public class DentistAdapter implements DentistRepository {
     @Override
     public Optional<DentistEntity> findByTelefono(Long telefono) {
         return jpaDentistRepository.findByTelefono(telefono);
+    }
+
+    @Override
+    public Optional<DentistEntity> findByUsernameOrEmail(String username, String email) {
+        return jpaDentistRepository.findByUsernameOrEmail(username, email);
     }
 }

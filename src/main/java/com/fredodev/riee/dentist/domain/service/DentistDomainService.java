@@ -33,6 +33,6 @@ public class DentistDomainService {
     }
 
     public DentistEntity editDentistDetail(DentistEntity dentistToEdit) {
-        return dentistRepository.edit(dentistToEdit);
+        return dentistRepository.save(dentistToEdit);
     }
 }

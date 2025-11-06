@@ -1,85 +1,79 @@
 package com.fredodev.riee.config;
 
+import com.fredodev.riee.auth.infrastructure.security.JwtAuthenticationFilter;
+import com.fredodev.riee.dentist.domain.repository.DentistRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception{
-        return httpSecurity
-                .cors()
-                .and()
-                .csrf().disable()
-                .authorizeHttpRequests(
-                        auth ->{
-                            auth.requestMatchers("hola").permitAll();
-                            auth.requestMatchers("/api/v1/pacientes/**").permitAll();
-                            auth.requestMatchers("/api/v1/riee/patients/**").permitAll();
-                            auth.requestMatchers("/api/v1/riee/treatments").permitAll();
-                            auth.requestMatchers("/api/v1/riee/treatments/**").permitAll();
-                            auth.requestMatchers("/api/**").permitAll();
-                            //swagger documentacion
-                            auth.requestMatchers("/swagger-ui.html").permitAll();
-                            auth.requestMatchers("/swagger-ui/**").permitAll();
-                            auth.requestMatchers("/api-docs/**").permitAll();
-                            //
-                            auth.requestMatchers("/api/v1/riee/appointments").permitAll();
-                            auth.requestMatchers("/api/v1/riee/appointments/**").permitAll();
 
-                            auth.anyRequest().authenticated();
-                        }
-                )
-                .formLogin()
-                .successHandler(successHandler())
-                .permitAll()
-                .and()
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
-                .invalidSessionUrl("/login")
-                .maximumSessions(1)
-                .expiredUrl("/login")
-                .sessionRegistry(sessionRegistry())
-                .and()
-                .sessionFixation()
-                .migrateSession()//.newSession()
-                .and()
-                .httpBasic()
-                .and()
-                .build();
-    }
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource(){
-        CorsConfiguration configuration= new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:5173");
-        configuration.addAllowedMethod("*");
-        configuration.addAllowedHeader("*");
-        configuration.setAllowCredentials(true);
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final DentistRepository dentistRepository;
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/*",configuration);
-        return source;
-    }
-    public AuthenticationSuccessHandler successHandler(){
-        return ((request, response, authentication) ->{
-            response.sendRedirect("/session");
-        });
-    }
     @Bean
-    public SessionRegistry sessionRegistry(){
-        return new SessionRegistryImpl();
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/v1/auth/**",
+                    "/api/v1/riee/auth/**",
+                    "auth/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> dentistRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService());
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
