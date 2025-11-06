@@ -141,10 +141,10 @@ public class DentistUseCase {
                 .apellidos(entity.getApellidos())
                 .email(entity.getEmail())
                 .username(entity.getUsername())
-                .telefono(entity.getTelefono() != null ? String.valueOf(entity.getTelefono()) : null)
-                .ciDentista(entity.getCiDentista() != null ? String.valueOf(entity.getCiDentista()) : null)
+                .telefono(entity.getTelefono())
+                .ciDentista(entity.getCiDentista())
                 .universidad(entity.getUniversidad())
-                .promocion(entity.getPromocion() != null ? String.valueOf(entity.getPromocion()) : null)
+                .promocion(entity.getPromocion())
                 .imagenUrl(entity.getImagenUrl())
                 .especialidades(especialidades)
                 .build();

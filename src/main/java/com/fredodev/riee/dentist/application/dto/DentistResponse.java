@@ -16,11 +16,10 @@ public class DentistResponse {
     private String apellidos;
     private String email;
     private String username;
-    private String telefono;
-    private String ciDentista;
+    private Long telefono;
+    private Long ciDentista;
     private String universidad;
-    private String promocion;
+    private Long promocion;
     private String imagenUrl;
-    //mandar las especialidades como una lista de strings
     private List<String> especialidades;
 }
