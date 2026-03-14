@@ -1,6 +1,7 @@
 package com.fredodev.riee.dentist.domain.service;
 
 import com.fredodev.riee.dentist.application.dto.DentistRequest;
+import com.fredodev.riee.dentist.application.dto.DentistUpdateMultipartRequest;
 import com.fredodev.riee.dentist.domain.entity.DentistEntity;
 import com.fredodev.riee.dentist.domain.repository.DentistRepository;
 import com.fredodev.riee.dentist.domain.exception.InvalidDentistException;
@@ -27,6 +28,35 @@ public class DentistDomainValidator {
         }
     }
     public void validateBeforeUpdate(Long id, DentistRequest request) {
+        if (id == null) throw new InvalidDentistException("Id is required for update");
+        if (request == null) throw new InvalidDentistException("Request is null");
+
+        Optional<DentistEntity> byEmail = dentistRepository.findByEmail(request.getEmail());
+        if (byEmail.isPresent() && !byEmail.get().getId().equals(id)) {
+            throw new InvalidDentistException("Email already in use by another dentist");
+        }
+
+        Optional<DentistEntity> byUsername = dentistRepository.findByUsername(request.getUsername());
+        if (byUsername.isPresent() && !byUsername.get().getId().equals(id)) {
+            throw new InvalidDentistException("Username already in use by another dentist");
+        }
+
+        if (request.getCiDentista() != null) {
+            Optional<DentistEntity> byCi = dentistRepository.findByCiDentista(request.getCiDentista());
+            if (byCi.isPresent() && !byCi.get().getId().equals(id)) {
+                throw new InvalidDentistException("CI already in use by another dentist");
+            }
+        }
+
+        if (request.getTelefono() != null) {
+            Optional<DentistEntity> byPhone = dentistRepository.findByTelefono(request.getTelefono());
+            if (byPhone.isPresent() && !byPhone.get().getId().equals(id)) {
+                throw new InvalidDentistException("Phone already in use by another dentist");
+            }
+        }
+    }
+
+    public void validateBeforeUpdate(Long id, DentistUpdateMultipartRequest request) {
         if (id == null) throw new InvalidDentistException("Id is required for update");
         if (request == null) throw new InvalidDentistException("Request is null");
 

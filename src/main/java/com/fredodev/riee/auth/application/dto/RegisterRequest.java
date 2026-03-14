@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class RegisterRequest {
 
     private Long promocion;
 
-    private String imagenUrl;
+    private MultipartFile imagen;
 
     @NotBlank(message = "La contraseña es requerida")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")

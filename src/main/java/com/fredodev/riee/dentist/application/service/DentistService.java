@@ -2,6 +2,7 @@ package com.fredodev.riee.dentist.application.service;
 
 import com.fredodev.riee.dentist.application.dto.DentistRequest;
 import com.fredodev.riee.dentist.application.dto.DentistResponse;
+import com.fredodev.riee.dentist.application.dto.DentistUpdateMultipartRequest;
 import com.fredodev.riee.dentist.application.usecases.DentistUseCase;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,10 @@ public class DentistService {
 
     public DentistResponse updateDentist(Long id, DentistRequest request) {
         return dentistUseCase.updateDentist(id, request);
+    }
+
+    public DentistResponse updateDentistWithImage(Long id, DentistUpdateMultipartRequest request) {
+        return dentistUseCase.updateDentistWithImage(id, request);
     }
 
     public DentistResponse getDentistById(Long id) {

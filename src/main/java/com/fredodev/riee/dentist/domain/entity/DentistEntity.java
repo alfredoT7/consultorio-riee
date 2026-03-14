@@ -35,6 +35,7 @@ public class DentistEntity implements UserDetails {
     private String universidad;
     private Long promocion;
     private String imagenUrl;
+    private String imagenPublicId;
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "dentist_speciality",

@@ -2,10 +2,13 @@ package com.fredodev.riee.dentist.infrastructure.rest;
 
 import com.fredodev.riee.dentist.application.dto.DentistRequest;
 import com.fredodev.riee.dentist.application.dto.DentistResponse;
+import com.fredodev.riee.dentist.application.dto.DentistUpdateMultipartRequest;
 import com.fredodev.riee.dentist.application.service.DentistService;
 import com.fredodev.riee.shared.api.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +23,15 @@ public class DentistController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DentistResponse>> updateDentist(@PathVariable Long id, @RequestBody DentistRequest request) {
         DentistResponse response = dentistService.updateDentist(id, request);
+        return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Dentist updated successfully", response));
+    }
+
+    @PutMapping(value = "/{id}/edit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<DentistResponse>> updateDentistWithImage(
+            @PathVariable Long id,
+            @Valid @ModelAttribute DentistUpdateMultipartRequest request
+    ) {
+        DentistResponse response = dentistService.updateDentistWithImage(id, request);
         return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Dentist updated successfully", response));
     }
 
