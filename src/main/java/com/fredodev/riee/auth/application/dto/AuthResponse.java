@@ -11,6 +11,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
+    private Long id;
+    private String nombres;
+    private String apellidos;
     private String token;
     @Default
     private String type = "Bearer";

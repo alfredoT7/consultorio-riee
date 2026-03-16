@@ -75,6 +75,9 @@ public class AuthService {
 
         var token = jwtService.generateToken(dentist);
         return AuthResponse.builder()
+                .id(dentist.getId())
+                .nombres(dentist.getNombres())
+                .apellidos(dentist.getApellidos())
                 .token(token)
                 .imagenUrl(dentist.getImagenUrl())
                 .build();
@@ -92,6 +95,9 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         var token = jwtService.generateToken(dentist);
         return AuthResponse.builder()
+                .id(dentist.getId())
+                .nombres(dentist.getNombres())
+                .apellidos(dentist.getApellidos())
                 .token(token)
                 .imagenUrl(dentist.getImagenUrl())
                 .build();
