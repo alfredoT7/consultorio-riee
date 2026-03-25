@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -51,8 +52,23 @@ public class TreatmentHistoryEntity {
     private TreatmentHistoryStatusEntity estadoTratamiento;
     @OneToMany(mappedBy = "treatmentHistory", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TreatmentHistoryImageEntity> imagenesTratamiento;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "treatmentHistory", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("fechaPago DESC, id DESC")
+    private List<TreatmentPaymentEntity> registrosPago = new ArrayList<>();
+
     @ManyToOne
     @JoinColumn(name = "treatment_id")
     private TreatmentEntity treatment;
 
+    public void addRegistroPago(TreatmentPaymentEntity registroPago) {
+        registrosPago.add(registroPago);
+        registroPago.setTreatmentHistory(this);
+    }
+
+    public void removeRegistroPago(TreatmentPaymentEntity registroPago) {
+        registrosPago.remove(registroPago);
+        registroPago.setTreatmentHistory(null);
+    }
 }
