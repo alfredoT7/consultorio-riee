@@ -1,0 +1,195 @@
+@startuml
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundcorner 12
+
+title RIEE - Modelo Entidad Relacion
+
+entity "appointments" as appointments {
+  * id : BIGINT <<PK>>
+  --
+  fecha_cita : DATE <<NOT NULL>>
+  hora_cita : TIME <<NOT NULL>>
+  motivo_cita : VARCHAR(500)
+  estado_cita : VARCHAR <<NOT NULL>>
+  observaciones_cita : VARCHAR(1000)
+  duracion_estimada : BIGINT
+  patient_id : BIGINT <<FK, NOT NULL>>
+  appointment_status_id : BIGINT <<FK, NOT NULL>>
+}
+
+entity "appointment_statuses" as appointment_statuses {
+  * id : BIGINT <<PK>>
+  --
+  status : VARCHAR <<NOT NULL>>
+}
+
+entity "patients" as patients {
+  * id : BIGINT <<PK>>
+  --
+  ci_paciente : BIGINT <<UNIQUE, NOT NULL>>
+  email : VARCHAR <<NOT NULL>>
+  estado_civil_id : INT <<FK, NOT NULL>>
+  fecha_nacimiento : DATE <<NOT NULL>>
+  direccion : VARCHAR(255) <<NOT NULL>>
+  ocupacion : VARCHAR(100)
+  persona_de_referencia : VARCHAR(100)
+  numero_persona_ref : BIGINT
+  imagen : VARCHAR(255)
+  nombre : VARCHAR(100) <<NOT NULL>>
+  apellido : VARCHAR(100) <<NOT NULL>>
+}
+
+entity "civil_status" as civil_status {
+  * id : INT <<PK>>
+  --
+  status : VARCHAR(50) <<UNIQUE, NOT NULL>>
+}
+
+entity "phone_number" as phone_number {
+  * id : BIGINT <<PK>>
+  --
+  numero : VARCHAR(20) <<NOT NULL>>
+  patient_id : BIGINT <<FK>>
+}
+
+entity "dentists" as dentists {
+  * id : BIGINT <<PK>>
+  --
+  nombres : VARCHAR
+  apellidos : VARCHAR
+  email : VARCHAR <<UNIQUE>>
+  username : VARCHAR <<UNIQUE>>
+  password : VARCHAR
+  telefono : BIGINT
+  ci_dentista : BIGINT
+  universidad : VARCHAR
+  promocion : BIGINT
+  imagen_url : VARCHAR
+  imagen_public_id : VARCHAR
+}
+
+entity "specialities" as specialities {
+  * id : BIGINT <<PK>>
+  --
+  nombre : VARCHAR <<UNIQUE, NOT NULL>>
+  descripcion : VARCHAR(1000)
+}
+
+entity "dentist_speciality" as dentist_speciality {
+  --
+  dentist_id : BIGINT <<FK>>
+  speciality_id : BIGINT <<FK>>
+}
+
+entity "dentist_specialities" as dentist_specialities {
+  * id : BIGINT <<PK>>
+  --
+  dentist_id : BIGINT <<FK, NOT NULL>>
+  speciality_id : BIGINT <<FK, NOT NULL>>
+  certification_date : DATE
+  certification_institution : VARCHAR
+}
+
+entity "treatments" as treatments {
+  * id : BIGINT <<PK>>
+  --
+  nombre_tratamiento : VARCHAR <<NOT NULL>>
+  descripcion : VARCHAR(500)
+  procedimiento : VARCHAR(1000)
+  semanas_estimadas : INT
+  costo_base_tratamiento : INT
+  notas_adicionales : VARCHAR(500)
+  imagen_referencial : VARCHAR
+}
+
+entity "treatment_history" as treatment_history {
+  * id : BIGINT <<PK>>
+  --
+  patient_id : BIGINT <<FK, NOT NULL>>
+  notas_adicionales : VARCHAR(500)
+  fecha_inicio_tratamiento : DATE
+  fecha_fin_tratamiento : DATE
+  precio_total_tratamiento : DOUBLE
+  costo_total_tratamiento : DOUBLE
+  descuento_total_tratamiento : DOUBLE
+  saldo_total_tratamiento : DOUBLE
+  estado_id : BIGINT <<FK>>
+  treatment_id : BIGINT <<FK>>
+}
+
+entity "treatment_history_statuses" as treatment_history_statuses {
+  * id : BIGINT <<PK>>
+  --
+  name : VARCHAR <<NOT NULL>>
+  description : VARCHAR
+  color_code : VARCHAR
+}
+
+entity "treatment_history_images" as treatment_history_images {
+  * id : BIGINT <<PK>>
+  --
+  image_url : VARCHAR <<NOT NULL>>
+  created_at : TIMESTAMP
+  treatment_history_id : BIGINT <<FK>>
+}
+
+entity "dental_pieces" as dental_pieces {
+  * id : BIGINT <<PK>>
+  --
+  numero : VARCHAR <<NOT NULL>>
+  nombre : VARCHAR
+  cuadrante : VARCHAR
+}
+
+entity "treatment_history_dental_pieces" as treatment_history_dental_pieces {
+  --
+  treatment_history_id : BIGINT <<FK>>
+  dental_piece_id : BIGINT <<FK>>
+}
+
+entity "dentist_treatment_history" as dentist_treatment_history {
+  * id : BIGINT <<PK>>
+  --
+  dentist_id : BIGINT <<FK, NOT NULL>>
+  treatment_history_id : BIGINT <<FK, NOT NULL>>
+  fecha_asignacion : TIMESTAMP
+  notas : VARCHAR(500)
+  dentista_principal : BOOLEAN
+}
+
+civil_status ||--o{ patients : estado_civil_id
+patients ||--o{ phone_number : patient_id
+patients ||--o| appointments : patient_id
+appointment_statuses ||--o{ appointments : appointment_status_id
+
+dentists ||--o{ dentist_specialities : dentist_id
+specialities ||--o{ dentist_specialities : speciality_id
+dentists ||--o{ dentist_speciality : dentist_id
+specialities ||--o{ dentist_speciality : speciality_id
+
+patients ||--o{ treatment_history : patient_id
+treatment_history_statuses ||--o{ treatment_history : estado_id
+treatments ||--o{ treatment_history : treatment_id
+treatment_history ||--o{ treatment_history_images : treatment_history_id
+treatment_history ||--o{ treatment_history_dental_pieces : treatment_history_id
+dental_pieces ||--o{ treatment_history_dental_pieces : dental_piece_id
+dentists ||--o{ dentist_treatment_history : dentist_id
+treatment_history ||--o{ dentist_treatment_history : treatment_history_id
+
+note right of dentist_speciality
+Tabla puente declarada por @ManyToMany en DentistEntity.
+El codigo tambien define la entidad dentist_specialities
+como una tabla distinta con atributos extra.
+end note
+
+note bottom of appointments
+La relacion con patients esta mapeada como @OneToOne
+desde AppointmentEntity, por eso se muestra 1 a 0..N invertido
+segun el lado propietario declarado en el codigo.
+end note
+
+@enduml
