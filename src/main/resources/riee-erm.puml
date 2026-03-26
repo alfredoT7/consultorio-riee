@@ -137,6 +137,23 @@ entity "treatment_history_images" as treatment_history_images {
   treatment_history_id : BIGINT <<FK>>
 }
 
+entity "treatment_payments" as treatment_payments {
+  * id : BIGINT <<PK>>
+  --
+  treatment_history_id : BIGINT <<FK, NOT NULL>>
+  monto_pago : DECIMAL(12,2) <<NOT NULL>>
+  fecha_pago : TIMESTAMP <<NOT NULL>>
+  metodo_pago : VARCHAR(50) <<NOT NULL>>
+  referencia_pago : VARCHAR(100)
+  estado_pago : VARCHAR(30) <<NOT NULL>>
+  saldo_anterior : DECIMAL(12,2)
+  saldo_posterior : DECIMAL(12,2)
+  registrado_por : VARCHAR(100)
+  observacion : VARCHAR(500)
+  created_at : TIMESTAMP <<NOT NULL>>
+  updated_at : TIMESTAMP
+}
+
 entity "dental_pieces" as dental_pieces {
   * id : BIGINT <<PK>>
   --
@@ -175,6 +192,7 @@ patients ||--o{ treatment_history : patient_id
 treatment_history_statuses ||--o{ treatment_history : estado_id
 treatments ||--o{ treatment_history : treatment_id
 treatment_history ||--o{ treatment_history_images : treatment_history_id
+treatment_history ||--o{ treatment_payments : treatment_history_id
 treatment_history ||--o{ treatment_history_dental_pieces : treatment_history_id
 dental_pieces ||--o{ treatment_history_dental_pieces : dental_piece_id
 dentists ||--o{ dentist_treatment_history : dentist_id
