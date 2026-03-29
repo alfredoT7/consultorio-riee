@@ -1,11 +1,13 @@
 package com.fredodev.riee.patient.infrastructure.rest;
 
+import com.fredodev.riee.patient.application.dto.PatientRequest;
 import com.fredodev.riee.patient.application.usecases.PatientService;
 import com.fredodev.riee.patient.domain.entity.PatientEntity;
-import lombok.RequiredArgsConstructor;
+import com.fredodev.riee.shared.api.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,21 +20,22 @@ public class PatientController {
         this.patientService = patientService;
     }
 
-    @PostMapping
-    public ResponseEntity<PatientEntity> createPatient(@RequestBody PatientEntity patient) {
-        PatientEntity createdPatient = patientService.createPatient(patient);
-        return new ResponseEntity<>(createdPatient, HttpStatus.CREATED);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<PatientEntity>> createPatient(@Valid @ModelAttribute PatientRequest request) {
+        PatientEntity createdPatient = patientService.createPatient(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(HttpStatus.CREATED.value(), "Paciente creado correctamente", createdPatient));
     }
 
     @GetMapping
-    public ResponseEntity<List<PatientEntity>> getAllPatients() {
+    public ResponseEntity<ApiResponse<List<PatientEntity>>> getAllPatients() {
         List<PatientEntity> patients = patientService.getAllPatients();
-        return ResponseEntity.ok(patients);
+        return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Pacientes encontrados", patients));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PatientEntity> getPatientById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<PatientEntity>> getPatientById(@PathVariable Long id) {
         PatientEntity patient = patientService.getPatientById(id);
-        return ResponseEntity.ok(patient);
+        return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Paciente encontrado", patient));
     }
 }

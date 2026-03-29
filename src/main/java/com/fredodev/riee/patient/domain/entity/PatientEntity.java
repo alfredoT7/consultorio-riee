@@ -47,6 +47,9 @@ public class PatientEntity {
     @Column(length = 255)
     private String imagen;
 
+    @Column(length = 255)
+    private String imagenPublicId;
+
     @Column(nullable = false, length = 100)
     private String nombre;
 
