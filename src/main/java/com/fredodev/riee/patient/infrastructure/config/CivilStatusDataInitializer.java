@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +26,7 @@ public class CivilStatusDataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         Set<CivilStatusType> existingStatuses = civilStatusRepository.findByStatusIn(
                 Arrays.asList(CivilStatusType.values())
-        ).stream().map(CivilStatusEntity::getStatus).collect(java.util.stream.Collectors.toCollection(() ->
+        ).stream().map(CivilStatusEntity::getStatus).collect(Collectors.toCollection(() ->
                 EnumSet.noneOf(CivilStatusType.class)
         ));
 

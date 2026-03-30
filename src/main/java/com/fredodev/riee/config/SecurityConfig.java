@@ -5,6 +5,7 @@ import com.fredodev.riee.dentist.domain.repository.DentistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -33,21 +34,32 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .cors() // enable CORS support so CorsConfig is used
+            .cors()
             .and()
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/api/v1/riee/auth/**",
-                    "auth/**",
-                    "/status",
-                    "/api/v1/riee/status",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    // make specialities endpoints public
-                    "/specialities/**",
-                    "/api/v1/riee/specialities/**"
+                    "/auth/login",
+                    "/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/register",
+                    "/api/v1/riee/auth/login",
+                    "/api/v1/riee/auth/register"
+                ).permitAll()
+                .requestMatchers(HttpMethod.GET,
+                        "/specialities",
+                        "/specialities/**",
+                        "/api/v1/specialities",
+                        "/api/v1/specialities/**",
+                        "/api/v1/riee/specialities",
+                        "/api/v1/riee/specialities/**",
+                        "/status",
+                        "/status/**",
+                        "/api/status",
+                        "/api/status/**",
+                        "/api/v1/status",
+                        "/api/v1/status/**",
+                        "/api/v1/riee/status",
+                        "/api/v1/riee/status/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

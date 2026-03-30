@@ -90,7 +90,6 @@ public class AuthService {
                         request.getPassword()
                 )
         );
-        // Buscar por username o email
         var dentist = dentistRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         var token = jwtService.generateToken(dentist);
@@ -108,17 +107,12 @@ public class AuthService {
         var dentist = dentistRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Verificar contraseña actual
         if (!passwordEncoder.matches(request.getCurrentPassword(), dentist.getPassword())) {
             throw new RuntimeException("Contraseña actual incorrecta");
         }
-
-        // Verificar que las contraseñas nuevas coincidan
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("Las contraseñas no coinciden");
         }
-
-        // Actualizar contraseña
         dentist.setPassword(passwordEncoder.encode(request.getNewPassword()));
         dentistRepository.save(dentist);
     }
