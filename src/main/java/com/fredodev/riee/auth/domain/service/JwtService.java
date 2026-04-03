@@ -21,8 +21,11 @@ public class JwtService {
     @Value("${jwt.secret.key}")
     private String secretKey;
 
-    @Value("${jwt.expiration.minutes:30}")
+    @Value("${jwt.expiration.minutes}")
     private long expirationMinutes;
+
+    @Value("${jwt.expiration.seconds:0}")
+    private long expirationSeconds;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -38,12 +41,16 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        long expirationMillis = expirationSeconds > 0
+                ? expirationSeconds * 1000
+                : 1000 * 60 * expirationMinutes;
+
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * expirationMinutes))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

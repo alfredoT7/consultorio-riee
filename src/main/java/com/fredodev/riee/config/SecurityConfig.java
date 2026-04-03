@@ -1,6 +1,7 @@
 package com.fredodev.riee.config;
 
 import com.fredodev.riee.auth.infrastructure.security.JwtAuthenticationFilter;
+import com.fredodev.riee.auth.infrastructure.security.JwtAuthenticationEntryPoint;
 import com.fredodev.riee.dentist.domain.repository.DentistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +29,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final DentistRepository dentistRepository;
 
     @Bean
@@ -62,6 +64,9 @@ public class SecurityConfig {
                         "/api/v1/riee/status/**"
                 ).permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
