@@ -1,6 +1,8 @@
 package com.fredodev.riee.patient.infrastructure.rest;
 
 import com.fredodev.riee.patient.application.dto.PatientRequest;
+import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
+import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
 import com.fredodev.riee.patient.application.usecases.PatientService;
 import com.fredodev.riee.patient.domain.entity.PatientEntity;
 import com.fredodev.riee.shared.api.ApiResponse;
@@ -37,5 +39,29 @@ public class PatientController {
     public ResponseEntity<ApiResponse<PatientEntity>> getPatientById(@PathVariable Long id) {
         PatientEntity patient = patientService.getPatientById(id);
         return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Paciente encontrado", patient));
+    }
+
+    @PostMapping("/{id}/questionnaire")
+    public ResponseEntity<ApiResponse<PatientQuestionnaireResponse>> savePatientQuestionnaire(
+            @PathVariable Long id,
+            @Valid @RequestBody PatientQuestionnaireRequest request
+    ) {
+        PatientQuestionnaireResponse questionnaire = patientService.savePatientQuestionnaire(id, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(
+                        HttpStatus.CREATED.value(),
+                        "Cuestionario del paciente guardado correctamente",
+                        questionnaire
+                ));
+    }
+
+    @GetMapping("/{id}/questionnaire")
+    public ResponseEntity<ApiResponse<PatientQuestionnaireResponse>> getPatientQuestionnaire(@PathVariable Long id) {
+        PatientQuestionnaireResponse questionnaire = patientService.getPatientQuestionnaireByPatientId(id);
+        return ResponseEntity.ok(ApiResponse.ok(
+                HttpStatus.OK.value(),
+                "Cuestionario del paciente encontrado",
+                questionnaire
+        ));
     }
 }

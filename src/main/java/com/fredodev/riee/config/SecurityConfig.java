@@ -3,6 +3,7 @@ package com.fredodev.riee.config;
 import com.fredodev.riee.auth.infrastructure.security.JwtAuthenticationFilter;
 import com.fredodev.riee.auth.infrastructure.security.JwtAuthenticationEntryPoint;
 import com.fredodev.riee.dentist.domain.repository.DentistRepository;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,7 +40,9 @@ public class SecurityConfig {
             .cors()
             .and()
             .authorizeHttpRequests(auth -> auth
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(
+                    "/error",
                     "/auth/login",
                     "/auth/register",
                     "/api/v1/auth/login",

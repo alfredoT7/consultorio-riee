@@ -1,6 +1,8 @@
 package com.fredodev.riee.patient.application.usecases;
 
 import com.fredodev.riee.patient.application.dto.PatientRequest;
+import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
+import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
 import com.fredodev.riee.patient.application.dto.PhoneNumberRequest;
 import com.fredodev.riee.cloudinary.application.dto.CloudinaryUploadResponse;
 import com.fredodev.riee.cloudinary.application.service.CloudinaryService;
@@ -8,9 +10,11 @@ import com.fredodev.riee.patient.domain.clasifications.CivilStatusType;
 import com.fredodev.riee.patient.domain.entity.CivilStatusEntity;
 import com.fredodev.riee.patient.application.adapter.PatientAdapter;
 import com.fredodev.riee.patient.domain.entity.PatientEntity;
+import com.fredodev.riee.patient.domain.entity.PatientQuestionnaireEntity;
 import com.fredodev.riee.patient.domain.entity.PhoneNumberEntity;
 import com.fredodev.riee.patient.domain.exception.PatientDomainException;
 import com.fredodev.riee.patient.domain.repository.CivilStatusRepository;
+import com.fredodev.riee.patient.domain.repository.PatientQuestionnaireRepository;
 import com.fredodev.riee.patient.domain.repository.PatientRepository;
 import com.fredodev.riee.patient.domain.service.PatientDomainService;
 import jakarta.validation.Valid;
@@ -28,6 +32,7 @@ public class PatientService {
     private final PatientDomainService patientDomainService;
     private final PatientAdapter patientAdapter;
     private final PatientRepository patientRepository;
+    private final PatientQuestionnaireRepository patientQuestionnaireRepository;
     private final CivilStatusRepository civilStatusRepository;
     private final CloudinaryService cloudinaryService;
 
@@ -35,12 +40,14 @@ public class PatientService {
             PatientDomainService patientDomainService,
             PatientAdapter patientAdapter,
             PatientRepository patientRepository,
+            PatientQuestionnaireRepository patientQuestionnaireRepository,
             CivilStatusRepository civilStatusRepository,
             CloudinaryService cloudinaryService
     ) {
         this.patientDomainService = patientDomainService;
         this.patientAdapter = patientAdapter;
         this.patientRepository = patientRepository;
+        this.patientQuestionnaireRepository = patientQuestionnaireRepository;
         this.civilStatusRepository = civilStatusRepository;
         this.cloudinaryService = cloudinaryService;
     }
@@ -102,6 +109,47 @@ public class PatientService {
                 .orElseThrow(() -> new PatientDomainException("Paciente no encontrado con ID: " + id));
     }
 
+    @Transactional
+    public PatientQuestionnaireResponse savePatientQuestionnaire(
+            Long patientId,
+            @Valid PatientQuestionnaireRequest request
+    ) {
+        PatientEntity patient = getPatientById(patientId);
+        PatientQuestionnaireEntity questionnaire = patientQuestionnaireRepository.findByPatientId(patientId)
+                .orElseGet(PatientQuestionnaireEntity::new);
+
+        questionnaire.setPatient(patient);
+        questionnaire.setEstaBajoTratamientoMedicoActualmente(request.getEstaBajoTratamientoMedicoActualmente());
+        questionnaire.setTomaMedicamentosRegularmente(request.getTomaMedicamentosRegularmente());
+        questionnaire.setHaTenidoCirugiasImportantes(request.getHaTenidoCirugiasImportantes());
+        questionnaire.setEsHipertenso(request.getEsHipertenso());
+        questionnaire.setEsDiabetico(request.getEsDiabetico());
+        questionnaire.setTieneProblemasCardiacos(request.getTieneProblemasCardiacos());
+        questionnaire.setTieneProblemasCoagulacionOSangraFacilmente(request.getTieneProblemasCoagulacionOSangraFacilmente());
+        questionnaire.setEsAlergicoAMedicamentosOAnestesia(request.getEsAlergicoAMedicamentosOAnestesia());
+        questionnaire.setHaTenidoHepatitisOEnfermedadInfecciosaImportante(request.getHaTenidoHepatitisOEnfermedadInfecciosaImportante());
+        questionnaire.setPadeceAsmaOProblemasRespiratorios(request.getPadeceAsmaOProblemasRespiratorios());
+        questionnaire.setFuma(request.getFuma());
+        questionnaire.setConsumeAlcoholFrecuentemente(request.getConsumeAlcoholFrecuentemente());
+        questionnaire.setLeSangranLasEncias(request.getLeSangranLasEncias());
+        questionnaire.setTieneDolorOSensibilidadDental(request.getTieneDolorOSensibilidadDental());
+        questionnaire.setHaTenidoProblemasConTratamientosDentalesAnteriores(
+                request.getHaTenidoProblemasConTratamientosDentalesAnteriores()
+        );
+        questionnaire.setEstaEmbarazadaOLactancia(request.getEstaEmbarazadaOLactancia());
+
+        return mapQuestionnaireResponse(patientQuestionnaireRepository.save(questionnaire));
+    }
+
+    public PatientQuestionnaireResponse getPatientQuestionnaireByPatientId(Long patientId) {
+        getPatientById(patientId);
+        PatientQuestionnaireEntity questionnaire = patientQuestionnaireRepository.findByPatientId(patientId)
+                .orElseThrow(() -> new PatientDomainException(
+                        "El paciente no tiene cuestionario registrado. ID del paciente: " + patientId
+                ));
+        return mapQuestionnaireResponse(questionnaire);
+    }
+
     private CivilStatusType parseCivilStatus(String rawCivilStatus) {
         try {
             return CivilStatusType.valueOf(rawCivilStatus.trim().toUpperCase());
@@ -143,5 +191,32 @@ public class PatientService {
             cloudinaryService.deleteImage(publicId);
         } catch (RuntimeException ignored) {
         }
+    }
+
+    private PatientQuestionnaireResponse mapQuestionnaireResponse(PatientQuestionnaireEntity questionnaire) {
+        return PatientQuestionnaireResponse.builder()
+                .id(questionnaire.getId())
+                .patientId(questionnaire.getPatient().getId())
+                .estaBajoTratamientoMedicoActualmente(questionnaire.isEstaBajoTratamientoMedicoActualmente())
+                .tomaMedicamentosRegularmente(questionnaire.isTomaMedicamentosRegularmente())
+                .haTenidoCirugiasImportantes(questionnaire.isHaTenidoCirugiasImportantes())
+                .esHipertenso(questionnaire.isEsHipertenso())
+                .esDiabetico(questionnaire.isEsDiabetico())
+                .tieneProblemasCardiacos(questionnaire.isTieneProblemasCardiacos())
+                .tieneProblemasCoagulacionOSangraFacilmente(questionnaire.isTieneProblemasCoagulacionOSangraFacilmente())
+                .esAlergicoAMedicamentosOAnestesia(questionnaire.isEsAlergicoAMedicamentosOAnestesia())
+                .haTenidoHepatitisOEnfermedadInfecciosaImportante(
+                        questionnaire.isHaTenidoHepatitisOEnfermedadInfecciosaImportante()
+                )
+                .padeceAsmaOProblemasRespiratorios(questionnaire.isPadeceAsmaOProblemasRespiratorios())
+                .fuma(questionnaire.isFuma())
+                .consumeAlcoholFrecuentemente(questionnaire.isConsumeAlcoholFrecuentemente())
+                .leSangranLasEncias(questionnaire.isLeSangranLasEncias())
+                .tieneDolorOSensibilidadDental(questionnaire.isTieneDolorOSensibilidadDental())
+                .haTenidoProblemasConTratamientosDentalesAnteriores(
+                        questionnaire.isHaTenidoProblemasConTratamientosDentalesAnteriores()
+                )
+                .estaEmbarazadaOLactancia(questionnaire.isEstaEmbarazadaOLactancia())
+                .build();
     }
 }
