@@ -3,6 +3,8 @@ package com.fredodev.riee.patient.application.usecases;
 import com.fredodev.riee.patient.application.dto.PatientRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoRequest;
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoResponse;
 import com.fredodev.riee.patient.application.dto.PhoneNumberRequest;
 import com.fredodev.riee.cloudinary.application.dto.CloudinaryUploadResponse;
 import com.fredodev.riee.cloudinary.application.service.CloudinaryService;
@@ -10,10 +12,12 @@ import com.fredodev.riee.patient.domain.clasifications.CivilStatusType;
 import com.fredodev.riee.patient.domain.entity.CivilStatusEntity;
 import com.fredodev.riee.patient.application.adapter.PatientAdapter;
 import com.fredodev.riee.patient.domain.entity.PatientEntity;
+import com.fredodev.riee.patient.domain.entity.PatientClinicalInfoEntity;
 import com.fredodev.riee.patient.domain.entity.PatientQuestionnaireEntity;
 import com.fredodev.riee.patient.domain.entity.PhoneNumberEntity;
 import com.fredodev.riee.patient.domain.exception.PatientDomainException;
 import com.fredodev.riee.patient.domain.repository.CivilStatusRepository;
+import com.fredodev.riee.patient.domain.repository.PatientClinicalInfoRepository;
 import com.fredodev.riee.patient.domain.repository.PatientQuestionnaireRepository;
 import com.fredodev.riee.patient.domain.repository.PatientRepository;
 import com.fredodev.riee.patient.domain.service.PatientDomainService;
@@ -32,6 +36,7 @@ public class PatientService {
     private final PatientDomainService patientDomainService;
     private final PatientAdapter patientAdapter;
     private final PatientRepository patientRepository;
+    private final PatientClinicalInfoRepository patientClinicalInfoRepository;
     private final PatientQuestionnaireRepository patientQuestionnaireRepository;
     private final CivilStatusRepository civilStatusRepository;
     private final CloudinaryService cloudinaryService;
@@ -40,6 +45,7 @@ public class PatientService {
             PatientDomainService patientDomainService,
             PatientAdapter patientAdapter,
             PatientRepository patientRepository,
+            PatientClinicalInfoRepository patientClinicalInfoRepository,
             PatientQuestionnaireRepository patientQuestionnaireRepository,
             CivilStatusRepository civilStatusRepository,
             CloudinaryService cloudinaryService
@@ -47,6 +53,7 @@ public class PatientService {
         this.patientDomainService = patientDomainService;
         this.patientAdapter = patientAdapter;
         this.patientRepository = patientRepository;
+        this.patientClinicalInfoRepository = patientClinicalInfoRepository;
         this.patientQuestionnaireRepository = patientQuestionnaireRepository;
         this.civilStatusRepository = civilStatusRepository;
         this.cloudinaryService = cloudinaryService;
@@ -150,6 +157,32 @@ public class PatientService {
         return mapQuestionnaireResponse(questionnaire);
     }
 
+    @Transactional
+    public PatientClinicalInfoResponse savePatientClinicalInfo(
+            Long patientId,
+            @Valid PatientClinicalInfoRequest request
+    ) {
+        PatientEntity patient = getPatientById(patientId);
+        PatientClinicalInfoEntity clinicalInfo = patientClinicalInfoRepository.findByPatientId(patientId)
+                .orElseGet(PatientClinicalInfoEntity::new);
+
+        clinicalInfo.setPatient(patient);
+        clinicalInfo.setMotivoConsulta(request.getMotivoConsulta());
+        clinicalInfo.setAlergias(request.getAlergias());
+        clinicalInfo.setObservaciones(request.getObservaciones());
+
+        return mapClinicalInfoResponse(patientClinicalInfoRepository.save(clinicalInfo));
+    }
+
+    public PatientClinicalInfoResponse getPatientClinicalInfoByPatientId(Long patientId) {
+        getPatientById(patientId);
+        PatientClinicalInfoEntity clinicalInfo = patientClinicalInfoRepository.findByPatientId(patientId)
+                .orElseThrow(() -> new PatientDomainException(
+                        "El paciente no tiene informacion clinica registrada. ID del paciente: " + patientId
+                ));
+        return mapClinicalInfoResponse(clinicalInfo);
+    }
+
     private CivilStatusType parseCivilStatus(String rawCivilStatus) {
         try {
             return CivilStatusType.valueOf(rawCivilStatus.trim().toUpperCase());
@@ -217,6 +250,16 @@ public class PatientService {
                         questionnaire.isHaTenidoProblemasConTratamientosDentalesAnteriores()
                 )
                 .estaEmbarazadaOLactancia(questionnaire.isEstaEmbarazadaOLactancia())
+                .build();
+    }
+
+    private PatientClinicalInfoResponse mapClinicalInfoResponse(PatientClinicalInfoEntity clinicalInfo) {
+        return PatientClinicalInfoResponse.builder()
+                .id(clinicalInfo.getId())
+                .patientId(clinicalInfo.getPatient().getId())
+                .motivoConsulta(clinicalInfo.getMotivoConsulta())
+                .alergias(clinicalInfo.getAlergias())
+                .observaciones(clinicalInfo.getObservaciones())
                 .build();
     }
 }

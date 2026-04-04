@@ -1,6 +1,8 @@
 package com.fredodev.riee.patient.infrastructure.rest;
 
 import com.fredodev.riee.patient.application.dto.PatientRequest;
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoRequest;
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoResponse;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
 import com.fredodev.riee.patient.application.usecases.PatientService;
@@ -62,6 +64,30 @@ public class PatientController {
                 HttpStatus.OK.value(),
                 "Cuestionario del paciente encontrado",
                 questionnaire
+        ));
+    }
+
+    @PostMapping("/{id}/clinical-info")
+    public ResponseEntity<ApiResponse<PatientClinicalInfoResponse>> savePatientClinicalInfo(
+            @PathVariable Long id,
+            @Valid @RequestBody PatientClinicalInfoRequest request
+    ) {
+        PatientClinicalInfoResponse clinicalInfo = patientService.savePatientClinicalInfo(id, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(
+                        HttpStatus.CREATED.value(),
+                        "Informacion clinica del paciente guardada correctamente",
+                        clinicalInfo
+                ));
+    }
+
+    @GetMapping("/{id}/clinical-info")
+    public ResponseEntity<ApiResponse<PatientClinicalInfoResponse>> getPatientClinicalInfo(@PathVariable Long id) {
+        PatientClinicalInfoResponse clinicalInfo = patientService.getPatientClinicalInfoByPatientId(id);
+        return ResponseEntity.ok(ApiResponse.ok(
+                HttpStatus.OK.value(),
+                "Informacion clinica del paciente encontrada",
+                clinicalInfo
         ));
     }
 }
