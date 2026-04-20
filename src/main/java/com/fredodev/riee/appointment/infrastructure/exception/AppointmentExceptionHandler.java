@@ -2,6 +2,7 @@ package com.fredodev.riee.appointment.infrastructure.exception;
 
 import com.fredodev.riee.appointment.domain.exception.AppointmentNotFoundException;
 import com.fredodev.riee.appointment.domain.exception.DuplicateAppointmentException;
+import com.fredodev.riee.appointment.infrastructure.rest.AppointmentController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@ControllerAdvice
+@ControllerAdvice(assignableTypes = AppointmentController.class)
 public class AppointmentExceptionHandler {
 
     @ExceptionHandler(AppointmentNotFoundException.class)

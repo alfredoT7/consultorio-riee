@@ -1,11 +1,15 @@
 package com.fredodev.riee.patient.application.usecases;
 
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoRequest;
+import com.fredodev.riee.patient.application.dto.PatientClinicalInfoResponse;
+import com.fredodev.riee.patient.application.dto.PatientCompleteResponse;
 import com.fredodev.riee.patient.application.dto.PatientRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
-import com.fredodev.riee.patient.application.dto.PatientClinicalInfoRequest;
-import com.fredodev.riee.patient.application.dto.PatientClinicalInfoResponse;
+import com.fredodev.riee.patient.application.dto.PatientResponse;
 import com.fredodev.riee.patient.application.dto.PhoneNumberRequest;
+import com.fredodev.riee.patient.application.dto.PhoneNumberResponse;
+import com.fredodev.riee.patient.application.dto.CivilStatusResponse;
 import com.fredodev.riee.cloudinary.application.dto.CloudinaryUploadResponse;
 import com.fredodev.riee.cloudinary.application.service.CloudinaryService;
 import com.fredodev.riee.patient.domain.clasifications.CivilStatusType;
@@ -15,7 +19,10 @@ import com.fredodev.riee.patient.domain.entity.PatientEntity;
 import com.fredodev.riee.patient.domain.entity.PatientClinicalInfoEntity;
 import com.fredodev.riee.patient.domain.entity.PatientQuestionnaireEntity;
 import com.fredodev.riee.patient.domain.entity.PhoneNumberEntity;
+import com.fredodev.riee.patient.domain.exception.PatientClinicalInfoNotFoundException;
 import com.fredodev.riee.patient.domain.exception.PatientDomainException;
+import com.fredodev.riee.patient.domain.exception.PatientNotFoundException;
+import com.fredodev.riee.patient.domain.exception.PatientQuestionnaireNotFoundException;
 import com.fredodev.riee.patient.domain.repository.CivilStatusRepository;
 import com.fredodev.riee.patient.domain.repository.PatientClinicalInfoRepository;
 import com.fredodev.riee.patient.domain.repository.PatientQuestionnaireRepository;
@@ -61,7 +68,7 @@ public class PatientService {
 
 
     @Transactional
-    public PatientEntity createPatient(@Valid PatientRequest request) {
+    public PatientResponse createPatient(@Valid PatientRequest request) {
         if (patientRepository.existsByCiPaciente(request.getCiPaciente())) {
             throw new PatientDomainException("Ya existe un paciente con el CI: " + request.getCiPaciente());
         }
@@ -98,7 +105,7 @@ public class PatientService {
         }
 
         try {
-            return patientDomainService.createPatient(patient);
+            return mapPatientResponse(patientDomainService.createPatient(patient));
         } catch (RuntimeException exception) {
             if (uploadedImage != null && uploadedImage.getPublicId() != null) {
                 tryDeleteImage(uploadedImage.getPublicId());
@@ -107,13 +114,83 @@ public class PatientService {
         }
     }
 
-    public List<PatientEntity> getAllPatients() {
-        return patientAdapter.findAll();
+    @Transactional
+    public PatientResponse updatePatient(Long id, @Valid PatientRequest request) {
+        PatientEntity patient = getPatientEntityById(id);
+
+        if (patientRepository.existsByCiPacienteAndIdNot(request.getCiPaciente(), id)) {
+            throw new PatientDomainException("Ya existe un paciente con el CI: " + request.getCiPaciente());
+        }
+
+        CivilStatusType civilStatusType = parseCivilStatus(request.getEstadoCivil());
+        CivilStatusEntity civilStatus = civilStatusRepository.findByStatus(civilStatusType)
+                .orElseThrow(() -> new PatientDomainException(
+                        "No existe el estado civil configurado para: " + civilStatusType.name()
+                ));
+
+        patient.setCiPaciente(request.getCiPaciente());
+        patient.setEmail(request.getEmail());
+        patient.setEstadoCivil(civilStatus);
+        patient.setFechaNacimiento(Date.valueOf(request.getFechaNacimiento()));
+        patient.setDireccion(request.getDireccion());
+        patient.setOcupacion(request.getOcupacion());
+        patient.setPersonaDeReferencia(request.getPersonaDeReferencia());
+        patient.setNumeroPersonaRef(request.getNumeroPersonaRef() == null ? 0L : request.getNumeroPersonaRef());
+        patient.setNombre(request.getNombre());
+        patient.setApellido(request.getApellido());
+        replacePhoneNumbers(patient, request.getPhonesNumbers());
+
+        MultipartFile image = request.getImagen();
+        if (image != null && !image.isEmpty()) {
+            CloudinaryUploadResponse uploadedImage = cloudinaryService.replaceImage(
+                    image,
+                    PATIENT_IMAGE_FOLDER,
+                    patient.getImagenPublicId()
+            );
+            patient.setImagen(uploadedImage.getUrl());
+            patient.setImagenPublicId(uploadedImage.getPublicId());
+        }
+
+        return mapPatientResponse(patientAdapter.save(patient));
     }
 
-    public PatientEntity getPatientById(Long id) {
-        return patientAdapter.findById(id)
-                .orElseThrow(() -> new PatientDomainException("Paciente no encontrado con ID: " + id));
+    public List<PatientResponse> getAllPatients() {
+        return patientAdapter.findAll().stream()
+                .map(this::mapPatientResponse)
+                .toList();
+    }
+
+    public PatientResponse getPatientById(Long id) {
+        PatientEntity patient = getPatientEntityById(id);
+        return mapPatientResponse(patient);
+    }
+
+    public PatientCompleteResponse getPatientCompleteById(Long id) {
+        PatientClinicalInfoResponse clinicalInfo = null;
+        PatientQuestionnaireResponse questionnaire = null;
+        boolean missingClinicalInfo = false;
+        boolean missingQuestionnaire = false;
+
+        try {
+            clinicalInfo = getPatientClinicalInfoByPatientId(id);
+        } catch (PatientClinicalInfoNotFoundException ex) {
+            missingClinicalInfo = true;
+        }
+
+        try {
+            questionnaire = getPatientQuestionnaireByPatientId(id);
+        } catch (PatientQuestionnaireNotFoundException ex) {
+            missingQuestionnaire = true;
+        }
+
+        return PatientCompleteResponse.builder()
+                .patient(getPatientById(id))
+                .clinicalInfo(clinicalInfo)
+                .questionnaire(questionnaire)
+                .missingClinicalInfo(missingClinicalInfo)
+                .missingQuestionnaire(missingQuestionnaire)
+                .missingSections(buildMissingSections(missingClinicalInfo, missingQuestionnaire))
+                .build();
     }
 
     @Transactional
@@ -121,7 +198,7 @@ public class PatientService {
             Long patientId,
             @Valid PatientQuestionnaireRequest request
     ) {
-        PatientEntity patient = getPatientById(patientId);
+        PatientEntity patient = getPatientEntityById(patientId);
         PatientQuestionnaireEntity questionnaire = patientQuestionnaireRepository.findByPatientId(patientId)
                 .orElseGet(PatientQuestionnaireEntity::new);
 
@@ -151,8 +228,8 @@ public class PatientService {
     public PatientQuestionnaireResponse getPatientQuestionnaireByPatientId(Long patientId) {
         getPatientById(patientId);
         PatientQuestionnaireEntity questionnaire = patientQuestionnaireRepository.findByPatientId(patientId)
-                .orElseThrow(() -> new PatientDomainException(
-                        "El paciente no tiene cuestionario registrado. ID del paciente: " + patientId
+                .orElseThrow(() -> new PatientQuestionnaireNotFoundException(
+                        "El paciente no tiene cuestionario registrado"
                 ));
         return mapQuestionnaireResponse(questionnaire);
     }
@@ -162,7 +239,7 @@ public class PatientService {
             Long patientId,
             @Valid PatientClinicalInfoRequest request
     ) {
-        PatientEntity patient = getPatientById(patientId);
+        PatientEntity patient = getPatientEntityById(patientId);
         PatientClinicalInfoEntity clinicalInfo = patientClinicalInfoRepository.findByPatientId(patientId)
                 .orElseGet(PatientClinicalInfoEntity::new);
 
@@ -177,8 +254,8 @@ public class PatientService {
     public PatientClinicalInfoResponse getPatientClinicalInfoByPatientId(Long patientId) {
         getPatientById(patientId);
         PatientClinicalInfoEntity clinicalInfo = patientClinicalInfoRepository.findByPatientId(patientId)
-                .orElseThrow(() -> new PatientDomainException(
-                        "El paciente no tiene informacion clinica registrada. ID del paciente: " + patientId
+                .orElseThrow(() -> new PatientClinicalInfoNotFoundException(
+                        "El paciente no tiene informacion clinica registrada"
                 ));
         return mapClinicalInfoResponse(clinicalInfo);
     }
@@ -203,6 +280,12 @@ public class PatientService {
         return phone;
     }
 
+    private void replacePhoneNumbers(PatientEntity patient, List<PhoneNumberRequest> phoneRequests) {
+        patient.getPhonesNumbers().clear();
+        patient.getPhonesNumbers().addAll(mapPhoneNumbers(phoneRequests));
+        patient.getPhonesNumbers().forEach(phone -> phone.setPatient(patient));
+    }
+
     private String buildPatientImagePublicId(Long ciPaciente, String nombre, String apellido) {
         return sanitizeForCloudinary(ciPaciente) + "=" + sanitizeForCloudinary(nombre + "-" + apellido);
     }
@@ -224,6 +307,57 @@ public class PatientService {
             cloudinaryService.deleteImage(publicId);
         } catch (RuntimeException ignored) {
         }
+    }
+
+    private List<String> buildMissingSections(boolean missingClinicalInfo, boolean missingQuestionnaire) {
+        List<String> missingSections = new java.util.ArrayList<>();
+        if (missingClinicalInfo) {
+            missingSections.add("clinicalInfo");
+        }
+        if (missingQuestionnaire) {
+            missingSections.add("questionnaire");
+        }
+        return missingSections;
+    }
+
+    private PatientEntity getPatientEntityById(Long id) {
+        return patientAdapter.findById(id)
+                .orElseThrow(() -> new PatientNotFoundException("Paciente no encontrado"));
+    }
+
+    private PatientResponse mapPatientResponse(PatientEntity patient) {
+        return PatientResponse.builder()
+                .id(patient.getId())
+                .ciPaciente(patient.getCiPaciente())
+                .email(patient.getEmail())
+                .estadoCivil(mapCivilStatusResponse(patient.getEstadoCivil()))
+                .fechaNacimiento(patient.getFechaNacimiento())
+                .direccion(patient.getDireccion())
+                .ocupacion(patient.getOcupacion())
+                .personaDeReferencia(patient.getPersonaDeReferencia())
+                .numeroPersonaRef(patient.getNumeroPersonaRef())
+                .imagen(patient.getImagen())
+                .imagenPublicId(patient.getImagenPublicId())
+                .nombre(patient.getNombre())
+                .apellido(patient.getApellido())
+                .phonesNumbers(patient.getPhonesNumbers().stream()
+                        .map(this::mapPhoneNumberResponse)
+                        .toList())
+                .build();
+    }
+
+    private CivilStatusResponse mapCivilStatusResponse(CivilStatusEntity civilStatus) {
+        return CivilStatusResponse.builder()
+                .id(civilStatus.getId())
+                .status(civilStatus.getStatus())
+                .build();
+    }
+
+    private PhoneNumberResponse mapPhoneNumberResponse(PhoneNumberEntity phoneNumber) {
+        return PhoneNumberResponse.builder()
+                .id(phoneNumber.getId())
+                .numero(phoneNumber.getNumero())
+                .build();
     }
 
     private PatientQuestionnaireResponse mapQuestionnaireResponse(PatientQuestionnaireEntity questionnaire) {

@@ -1,7 +1,10 @@
 package com.fredodev.riee.patient.infrastructure.exception;
 
 
+import com.fredodev.riee.patient.domain.exception.PatientClinicalInfoNotFoundException;
 import com.fredodev.riee.patient.domain.exception.PatientDomainException;
+import com.fredodev.riee.patient.domain.exception.PatientNotFoundException;
+import com.fredodev.riee.patient.domain.exception.PatientQuestionnaireNotFoundException;
 import com.fredodev.riee.shared.api.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,6 +19,36 @@ import java.util.List;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(PatientNotFoundException.class)
+    public ResponseEntity<Object> handlePatientNotFoundException(PatientNotFoundException ex) {
+        ApiResponse<Void> body = ApiResponse.error(
+                HttpStatus.NOT_FOUND.value(),
+                "Paciente no encontrado",
+                List.of("No se encontro el paciente solicitado")
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PatientClinicalInfoNotFoundException.class)
+    public ResponseEntity<Object> handlePatientClinicalInfoNotFoundException(PatientClinicalInfoNotFoundException ex) {
+        ApiResponse<Void> body = ApiResponse.error(
+                HttpStatus.NOT_FOUND.value(),
+                "Informacion clinica no encontrada",
+                List.of("El paciente no tiene informacion clinica registrada")
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PatientQuestionnaireNotFoundException.class)
+    public ResponseEntity<Object> handlePatientQuestionnaireNotFoundException(PatientQuestionnaireNotFoundException ex) {
+        ApiResponse<Void> body = ApiResponse.error(
+                HttpStatus.NOT_FOUND.value(),
+                "Cuestionario no encontrado",
+                List.of("El paciente no tiene cuestionario registrado")
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
 
     @ExceptionHandler(PatientDomainException.class)
     public ResponseEntity<Object> handlePatientDomainException(PatientDomainException ex) {
@@ -64,7 +97,7 @@ public class GlobalExceptionHandler {
         ApiResponse<Void> body = ApiResponse.error(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Error interno del servidor",
-                List.of(ex.getMessage())
+                List.of("Ocurrio un error inesperado en el modulo de pacientes")
         );
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
