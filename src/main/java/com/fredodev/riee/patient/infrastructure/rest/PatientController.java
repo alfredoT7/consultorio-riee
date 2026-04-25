@@ -91,12 +91,12 @@ public class PatientController {
         ));
     }
 
-    @PostMapping("/{id}/clinical-info")
+    @PostMapping("/{patientId}/clinical-info")
     public ResponseEntity<ApiResponse<PatientClinicalInfoResponse>> savePatientClinicalInfo(
-            @PathVariable Long id,
+            @PathVariable Long patientId,
             @Valid @RequestBody PatientClinicalInfoRequest request
     ) {
-        PatientClinicalInfoResponse clinicalInfo = patientService.savePatientClinicalInfo(id, request);
+        PatientClinicalInfoResponse clinicalInfo = patientService.savePatientClinicalInfo(patientId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(
                         HttpStatus.CREATED.value(),

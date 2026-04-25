@@ -19,10 +19,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AppointmentUseCase {
     private final AppointmentDomainService appointmentDomainService;
-
+    //TODO: que se filte por tiempo a partir de la fecha actual por que no me sirven las anteirores
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
-        // --- Appointment date and time validation ---
         java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
         java.time.LocalTime now = java.time.LocalTime.now();
         if (request.getFechaCita() == null || request.getHoraCita() == null) {
@@ -34,7 +33,6 @@ public class AppointmentUseCase {
         if (request.getFechaCita().equals(today) && request.getHoraCita().toLocalTime().isBefore(now)) {
             throw new com.fredodev.riee.appointment.domain.exception.InvalidAppointmentException("Cannot schedule appointments for past times today.");
         }
-        // Optional: restrict to working hours (08:00–18:00)
         java.time.LocalTime startHour = java.time.LocalTime.of(8, 0);
         java.time.LocalTime endHour = java.time.LocalTime.of(18, 0);
         java.time.LocalTime appointmentTime = request.getHoraCita().toLocalTime();
