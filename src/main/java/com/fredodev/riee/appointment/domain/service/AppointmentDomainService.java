@@ -2,9 +2,9 @@ package com.fredodev.riee.appointment.domain.service;
 
 import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
 import com.fredodev.riee.appointment.domain.repository.AppointmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.util.List;
 
 @Service
@@ -40,4 +40,11 @@ public class AppointmentDomainService {
         return appointmentRepository.findByCiPaciente(ciPaciente);
     }
 
+    public List<AppointmentEntity> findByFechaCita(Date fechaCita) {
+        return appointmentRepository.findByFechaCita(fechaCita);
+    }
+
+    public List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, Integer ciPaciente, Long patientId, Long appointmentStatusId) {
+        return appointmentRepository.findByFilters(fromDate, toDate, ciPaciente, patientId, appointmentStatusId);
+    }
 }

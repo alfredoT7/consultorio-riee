@@ -1,12 +1,9 @@
 package com.fredodev.riee.appointment.domain.repository;
 
 import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
+import java.sql.Date;
 import java.util.List;
-import java.util.Optional;
 
 public interface AppointmentRepository {
     AppointmentEntity save(AppointmentEntity appointmentEntity);
@@ -15,4 +12,6 @@ public interface AppointmentRepository {
     List<AppointmentEntity> findAll();
     void deleteById(Long id);
     List<AppointmentEntity> findByCiPaciente(int ciPaciente);
+    List<AppointmentEntity> findByFechaCita(Date fechaCita);
+    List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, Integer ciPaciente, Long patientId, Long appointmentStatusId);
 }
