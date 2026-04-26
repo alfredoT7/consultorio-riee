@@ -7,6 +7,7 @@ import com.fredodev.riee.appointment.infrastructure.ports.persistance.JpaAppoint
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Date;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -43,5 +44,15 @@ public class AppointmentAdapter implements AppointmentRepository {
     @Override
     public List<AppointmentEntity> findByCiPaciente(int ciPaciente) {
         return jpaAppointmentRepository.findByCiPaciente(ciPaciente);
+    }
+
+    @Override
+    public List<AppointmentEntity> findByFechaCita(Date fechaCita) {
+        return jpaAppointmentRepository.findByFechaCitaOrderByHoraCitaAsc(fechaCita);
+    }
+
+    @Override
+    public List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, Integer ciPaciente, Long patientId, Long appointmentStatusId) {
+        return jpaAppointmentRepository.findByFilters(fromDate, toDate, ciPaciente, patientId, appointmentStatusId);
     }
 }
