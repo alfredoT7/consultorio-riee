@@ -4,7 +4,9 @@ import com.fredodev.riee.auth.application.dto.AuthResponse;
 import com.fredodev.riee.auth.application.dto.ChangePasswordRequest;
 import com.fredodev.riee.auth.application.dto.LoginRequest;
 import com.fredodev.riee.auth.application.dto.RegisterRequest;
+import com.fredodev.riee.auth.domain.repository.OfficeKeyRepository;
 import com.fredodev.riee.auth.domain.service.JwtService;
+import com.fredodev.riee.auth.infrastructure.exception.InvalidOfficeKeyException;
 import com.fredodev.riee.cloudinary.application.dto.CloudinaryUploadResponse;
 import com.fredodev.riee.cloudinary.application.service.CloudinaryService;
 import com.fredodev.riee.cloudinary.domain.exception.CloudinaryOperationException;
@@ -26,13 +28,15 @@ public class AuthService {
 
     private final DentistRepository dentistRepository;
     private final SpecialityRepository specialityRepository;
+    private final OfficeKeyRepository officeKeyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final CloudinaryService cloudinaryService;
 
     @Transactional
-    public AuthResponse register(@Valid RegisterRequest request) {
+    public AuthResponse register(@Valid RegisterRequest request, String officeKey) {
+        validateOfficeKey(officeKey);
         validateRegisterRequest(request);
 
         var specialities = new java.util.ArrayList<com.fredodev.riee.dentist.domain.entity.SpecialityEntity>();
@@ -115,6 +119,15 @@ public class AuthService {
         }
         dentist.setPassword(passwordEncoder.encode(request.getNewPassword()));
         dentistRepository.save(dentist);
+    }
+
+    private void validateOfficeKey(String officeKey) {
+        if (officeKey == null || officeKey.isBlank()) {
+            throw new InvalidOfficeKeyException("La clave de consultorio es requerida para el registro");
+        }
+        if (!officeKeyRepository.existsByClaveAndActivoTrue(officeKey.trim())) {
+            throw new InvalidOfficeKeyException("La clave de consultorio es inválida o está inactiva");
+        }
     }
 
     private void validateRegisterRequest(RegisterRequest request) {
