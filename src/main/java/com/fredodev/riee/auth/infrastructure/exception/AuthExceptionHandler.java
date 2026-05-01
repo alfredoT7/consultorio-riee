@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.List;
 
+
 @RestControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class AuthExceptionHandler {
@@ -34,5 +35,15 @@ public class AuthExceptionHandler {
                 List.of(ex.getMessage())
         );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(InvalidOfficeKeyException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidOfficeKey(InvalidOfficeKeyException ex) {
+        ApiResponse<Void> response = ApiResponse.error(
+                HttpStatus.FORBIDDEN.value(),
+                "Acceso denegado",
+                List.of(ex.getMessage())
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 }
