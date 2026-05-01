@@ -20,8 +20,10 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @ModelAttribute RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    public ResponseEntity<ApiResponse<AuthResponse>> register(
+            @Valid @ModelAttribute RegisterRequest request,
+            @RequestHeader(name = "X-Office-Key", required = false) String officeKey) {
+        AuthResponse response = authService.register(request, officeKey);
         return ResponseEntity.ok(ApiResponse.ok(201, "Registro exitoso", response));
     }
 
