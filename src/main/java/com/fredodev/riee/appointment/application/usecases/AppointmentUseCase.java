@@ -1,12 +1,12 @@
 package com.fredodev.riee.appointment.application.usecases;
 
-import com.fredodev.riee.appointment.application.dto.AppointmentCalendarResponse;
-import com.fredodev.riee.appointment.application.dto.AppointmentFilterRequest;
-import com.fredodev.riee.appointment.application.dto.AppointmentRequest;
-import com.fredodev.riee.appointment.application.dto.AppointmentRescheduleRequest;
+import com.fredodev.riee.appointment.application.dto.AppointmentPatientSummaryResponse;
 import com.fredodev.riee.appointment.application.dto.AppointmentResponse;
 import com.fredodev.riee.appointment.application.dto.AppointmentStatusResponse;
+import com.fredodev.riee.appointment.application.dto.AppointmentStatusSummaryResponse;
 import com.fredodev.riee.appointment.application.dto.AvailabilitySlotResponse;
+import com.fredodev.riee.appointment.application.dto.CreateAppointmentRequest;
+import com.fredodev.riee.appointment.application.dto.UpdateAppointmentRequest;
 import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
 import com.fredodev.riee.appointment.domain.entity.AppointmentStatusEntity;
 import com.fredodev.riee.appointment.domain.exception.AppointmentNotFoundException;
@@ -21,26 +21,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.sql.Time;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.time.ZoneId;
 
 @Component
 @RequiredArgsConstructor
 public class AppointmentUseCase {
     private static final int DEFAULT_DURATION_MINUTES = 30;
-    private static final int DEFAULT_SLOT_MINUTES = 30;
-    private static final LocalTime START_HOUR = LocalTime.of(8, 0);
-    private static final LocalTime END_HOUR = LocalTime.of(18, 0);
+    private static final int SLOT_GRANULARITY_MINUTES = 15;
+    private static final int DAY_START_MINUTES = 0;
+    private static final int DAY_END_MINUTES = 24 * 60;
+    private static final ZoneId APPOINTMENT_ZONE = ZoneId.of("America/La_Paz");
+    private static final String DEFAULT_APPOINTMENT_STATUS = "PROGRAMADA";
 
     private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
-            "PENDIENTE", Set.of("CONFIRMADA", "CANCELADA", "NO_ASISTIO", "REPROGRAMADA"),
-            "CONFIRMADA", Set.of("EN_ESPERA", "EN_CURSO", "CANCELADA", "NO_ASISTIO", "REPROGRAMADA"),
-            "EN_ESPERA", Set.of("EN_CURSO", "CANCELADA", "NO_ASISTIO"),
-            "EN_CURSO", Set.of("COMPLETADA", "CANCELADA"),
-            "REPROGRAMADA", Set.of("CONFIRMADA", "CANCELADA", "NO_ASISTIO"),
+            "PROGRAMADA", Set.of("CONFIRMADA", "COMPLETADA", "CANCELADA", "NO_ASISTIO"),
+            "CONFIRMADA", Set.of("COMPLETADA", "CANCELADA", "NO_ASISTIO"),
             "COMPLETADA", Set.of(),
             "CANCELADA", Set.of(),
             "NO_ASISTIO", Set.of()
@@ -50,7 +51,8 @@ public class AppointmentUseCase {
     private final AppointmentStatusRepository appointmentStatusRepository;
 
     @Transactional
-    public AppointmentResponse createAppointment(AppointmentRequest request) {
+    public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
+        validateCreateRequest(request);
         validateDateTime(request.getFechaCita(), request.getHoraCita());
 
         int durationMinutes = normalizeDuration(request.getDuracionEstimada());
@@ -64,32 +66,41 @@ public class AppointmentUseCase {
     }
 
     @Transactional(readOnly = true)
-    public AppointmentResponse getAppointmentById(Long id) {
-        AppointmentEntity appointment = appointmentDomainService.findById(id);
-        if (appointment == null) {
-            throw new AppointmentNotFoundException("Appointment not found with id: " + id);
-        }
-        return mapToResponse(appointment);
+    public List<AppointmentResponse> getAppointments(Date fromDate, Date toDate, Date exactDate, String statusName) {
+        validateDateFilters(fromDate, toDate, exactDate);
+
+        Date effectiveFrom = exactDate != null ? exactDate : fromDate;
+        Date effectiveTo = exactDate != null ? exactDate : toDate;
+        String normalizedStatus = normalizeStatusName(statusName);
+
+        return appointmentDomainService.findByFilters(effectiveFrom, effectiveTo, normalizedStatus).stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAllAppointments() {
-        return appointmentDomainService.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<AppointmentStatusResponse> getAppointmentStatuses() {
+        return appointmentStatusRepository.findAll().stream()
+                .map(status -> AppointmentStatusResponse.builder()
+                        .id(status.getId())
+                        .status(status.getStatus())
+                        .build())
+                .toList();
     }
 
     @Transactional
-    public AppointmentResponse updateAppointment(Long id, AppointmentRequest request) {
+    public AppointmentResponse updateAppointment(Long id, UpdateAppointmentRequest request) {
         AppointmentEntity existingAppointment = appointmentDomainService.findById(id);
-        if (existingAppointment == null) {
-            throw new AppointmentNotFoundException("Appointment not found with id: " + id);
-        }
+        validateUpdateRequest(request);
 
-        validateDateTime(request.getFechaCita(), request.getHoraCita());
+        Date targetDate = request.getFechaCita() != null ? request.getFechaCita() : existingAppointment.getFechaCita();
+        Time targetTime = request.getHoraCita() != null ? request.getHoraCita() : existingAppointment.getHoraCita();
+        Long targetDuration = request.getDuracionEstimada() != null ? request.getDuracionEstimada() : existingAppointment.getDuracionEstimada();
 
-        int durationMinutes = normalizeDuration(request.getDuracionEstimada());
-        if (hasTimeConflict(request.getFechaCita(), request.getHoraCita(), durationMinutes, id)) {
+        validateDateTime(targetDate, targetTime);
+
+        int durationMinutes = normalizeDuration(targetDuration);
+        if (hasTimeConflict(targetDate, targetTime, durationMinutes, id)) {
             throw new DuplicateAppointmentException("Ya existe una cita en ese horario");
         }
 
@@ -107,152 +118,24 @@ public class AppointmentUseCase {
     }
 
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAppointmentsByPatientCi(int ciPaciente) {
-        return appointmentDomainService.findByCiPaciente(ciPaciente).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppointmentResponse> searchAppointments(AppointmentFilterRequest filter) {
-        return appointmentDomainService.findByFilters(
-                        filter.getFromDate(),
-                        filter.getToDate(),
-                        filter.getPatientCi(),
-                        filter.getPatientId(),
-                        filter.getAppointmentStatusId()
-                ).stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppointmentResponse> getAppointmentsByDate(Date fechaCita) {
-        if (fechaCita == null) {
-            throw new InvalidAppointmentException("La fecha es requerida");
-        }
-        return appointmentDomainService.findByFechaCita(fechaCita).stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppointmentCalendarResponse> getCalendarAppointments(AppointmentFilterRequest filter) {
-        return appointmentDomainService.findByFilters(
-                        filter.getFromDate(),
-                        filter.getToDate(),
-                        filter.getPatientCi(),
-                        filter.getPatientId(),
-                        filter.getAppointmentStatusId()
-                ).stream()
-                .map(this::mapToCalendarResponse)
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppointmentStatusResponse> getAppointmentStatuses() {
-        return appointmentStatusRepository.findAll().stream()
-                .map(status -> AppointmentStatusResponse.builder()
-                        .id(status.getId())
-                        .status(status.getStatus())
-                        .build())
-                .toList();
-    }
-
-    @Transactional
-    public AppointmentResponse confirmAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "CONFIRMADA", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse checkInAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "EN_ESPERA", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse startAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "EN_CURSO", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse completeAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "COMPLETADA", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse cancelAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "CANCELADA", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse noShowAppointment(Long id, String observacionesCita) {
-        return mapToResponse(changeStatusByName(id, "NO_ASISTIO", observacionesCita));
-    }
-
-    @Transactional
-    public AppointmentResponse rescheduleAppointment(Long id, AppointmentRescheduleRequest request) {
-        if (request == null || request.getFechaCita() == null || request.getHoraCita() == null) {
-            throw new InvalidAppointmentException("Fecha y hora son requeridas para reprogramar");
-        }
-
-        validateDateTime(request.getFechaCita(), request.getHoraCita());
-
-        AppointmentEntity appointment = appointmentDomainService.findById(id);
-        int durationMinutes = normalizeDuration(appointment.getDuracionEstimada());
-        if (hasTimeConflict(request.getFechaCita(), request.getHoraCita(), durationMinutes, id)) {
-            throw new DuplicateAppointmentException("Ya existe una cita en ese horario");
-        }
-
-        appointment.setFechaCita(request.getFechaCita());
-        appointment.setHoraCita(request.getHoraCita());
-        appointment.setObservacionesCita(mergeObservaciones(appointment.getObservacionesCita(), request.getObservacionesCita()));
-
-        validateTransition(currentStatusName(appointment), "REPROGRAMADA");
-        applyStatus(appointment, findStatusByName("REPROGRAMADA"));
-
-        AppointmentEntity saved = appointmentDomainService.save(appointment);
-        return mapToResponse(saved);
-    }
-
-    @Transactional
-    public AppointmentResponse updateAppointmentStatus(Long id, Long appointmentStatusId, String observacionesCita) {
-        if (appointmentStatusId == null) {
-            throw new InvalidAppointmentException("appointmentStatusId es requerido");
-        }
-
-        AppointmentEntity appointment = appointmentDomainService.findById(id);
-        AppointmentStatusEntity status = appointmentStatusRepository.findById(appointmentStatusId)
-                .orElseThrow(() -> new InvalidAppointmentException("Estado de cita no encontrado"));
-
-        validateTransition(currentStatusName(appointment), status.getStatus());
-        applyStatus(appointment, status);
-        appointment.setObservacionesCita(mergeObservaciones(appointment.getObservacionesCita(), observacionesCita));
-
-        return mapToResponse(appointmentDomainService.save(appointment));
-    }
-
-    @Transactional(readOnly = true)
-    public List<AvailabilitySlotResponse> getAvailableSlots(Date fechaCita, Integer durationMinutes, Integer slotMinutes) {
+    public List<AvailabilitySlotResponse> getAvailableSlots(Date fechaCita, Integer durationMinutes) {
         if (fechaCita == null) {
             throw new InvalidAppointmentException("La fecha es requerida");
         }
 
         int normalizedDuration = durationMinutes == null || durationMinutes <= 0 ? DEFAULT_DURATION_MINUTES : durationMinutes;
-        int normalizedSlot = slotMinutes == null || slotMinutes <= 0 ? DEFAULT_SLOT_MINUTES : slotMinutes;
-
         List<AppointmentEntity> appointments = appointmentDomainService.findByFechaCita(fechaCita);
 
-        LocalTime cursor = START_HOUR;
         List<AvailabilitySlotResponse> slots = new java.util.ArrayList<>();
-        while (!cursor.plusMinutes(normalizedDuration).isAfter(END_HOUR)) {
-            LocalTime slotEnd = cursor.plusMinutes(normalizedDuration);
+        for (int cursorMinutes = DAY_START_MINUTES; cursorMinutes + normalizedDuration <= DAY_END_MINUTES; cursorMinutes += SLOT_GRANULARITY_MINUTES) {
+            LocalTime cursor = toLocalTime(cursorMinutes);
+            LocalTime slotEnd = toLocalTime(cursorMinutes + normalizedDuration);
             if (!hasTimeConflict(appointments, cursor, slotEnd, null)) {
                 slots.add(AvailabilitySlotResponse.builder()
                         .startTime(cursor.toString())
                         .endTime(slotEnd.toString())
                         .build());
             }
-            cursor = cursor.plusMinutes(normalizedSlot);
         }
 
         return slots;
@@ -270,14 +153,6 @@ public class AppointmentUseCase {
 
         List<AppointmentEntity> appointments = appointmentDomainService.findByFechaCita(fechaCita);
         return hasTimeConflict(appointments, start, end, excludeAppointmentId);
-    }
-
-    private AppointmentEntity changeStatusByName(Long id, String targetStatus, String observacionesCita) {
-        AppointmentEntity appointment = appointmentDomainService.findById(id);
-        validateTransition(currentStatusName(appointment), targetStatus);
-        applyStatus(appointment, findStatusByName(targetStatus));
-        appointment.setObservacionesCita(mergeObservaciones(appointment.getObservacionesCita(), observacionesCita));
-        return appointmentDomainService.save(appointment);
     }
 
     private void validateTransition(String currentStatus, String targetStatus) {
@@ -309,39 +184,41 @@ public class AppointmentUseCase {
                 .orElseThrow(() -> new InvalidAppointmentException("No existe el estado de cita: " + statusName));
     }
 
+    private AppointmentStatusEntity findStatusById(Long appointmentStatusId) {
+        if (appointmentStatusId == null) {
+            throw new InvalidAppointmentException("appointmentStatusId es requerido");
+        }
+        return appointmentStatusRepository.findById(appointmentStatusId)
+                .orElseThrow(() -> new InvalidAppointmentException("Estado de cita no encontrado"));
+    }
+
+    private AppointmentStatusEntity resolveCreateStatus(Long appointmentStatusId) {
+        if (appointmentStatusId == null) {
+            return findStatusByName(DEFAULT_APPOINTMENT_STATUS);
+        }
+        return findStatusById(appointmentStatusId);
+    }
+
     private void applyStatus(AppointmentEntity appointment, AppointmentStatusEntity status) {
         appointment.setAppointmentStatus(status);
         appointment.setEstadoCita(status.getStatus());
     }
 
-    private String mergeObservaciones(String current, String incoming) {
-        if (incoming == null || incoming.isBlank()) {
-            return current;
-        }
-        if (current == null || current.isBlank()) {
-            return incoming;
-        }
-        return current + " | " + incoming;
-    }
-
     private void validateDateTime(Date fechaCita, Time horaCita) {
-        Date today = new Date(System.currentTimeMillis());
-        LocalTime now = LocalTime.now();
+        LocalDate today = LocalDate.now(APPOINTMENT_ZONE);
+        LocalTime now = LocalTime.now(APPOINTMENT_ZONE);
+        LocalDate appointmentDate = fechaCita.toLocalDate();
 
         if (fechaCita == null || horaCita == null) {
             throw new InvalidAppointmentException("Appointment date and time are required.");
         }
-        if (fechaCita.before(today)) {
+        if (appointmentDate.isBefore(today)) {
             throw new InvalidAppointmentException("Cannot schedule appointments in the past.");
         }
-        if (fechaCita.equals(today) && horaCita.toLocalTime().isBefore(now)) {
+        if (appointmentDate.equals(today) && horaCita.toLocalTime().isBefore(now)) {
             throw new InvalidAppointmentException("Cannot schedule appointments for past times today.");
         }
 
-        LocalTime appointmentTime = horaCita.toLocalTime();
-        if (appointmentTime.isBefore(START_HOUR) || appointmentTime.isAfter(END_HOUR)) {
-            throw new InvalidAppointmentException("Appointments must be scheduled between 08:00 and 18:00.");
-        }
     }
 
     private int normalizeDuration(Long duracionEstimada) {
@@ -369,18 +246,23 @@ public class AppointmentUseCase {
         return false;
     }
 
-    private AppointmentEntity mapToEntity(AppointmentRequest request) {
+    private LocalTime toLocalTime(int totalMinutes) {
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+        return LocalTime.of(hours, minutes);
+    }
+
+    private AppointmentEntity mapToEntity(CreateAppointmentRequest request) {
         PatientEntity patient = new PatientEntity();
         patient.setId(request.getPatientId());
 
-        AppointmentStatusEntity status = new AppointmentStatusEntity();
-        status.setId(request.getAppointmentStatusId());
+        AppointmentStatusEntity status = resolveCreateStatus(request.getAppointmentStatusId());
 
         return AppointmentEntity.builder()
                 .fechaCita(request.getFechaCita())
                 .horaCita(request.getHoraCita())
                 .motivoCita(request.getMotivoCita())
-                .estadoCita(request.getEstadoCita())
+                .estadoCita(status.getStatus())
                 .observacionesCita(request.getObservacionesCita())
                 .duracionEstimada(request.getDuracionEstimada())
                 .patient(patient)
@@ -388,21 +270,32 @@ public class AppointmentUseCase {
                 .build();
     }
 
-    private void updateEntityFromRequest(AppointmentEntity entity, AppointmentRequest request) {
-        entity.setFechaCita(request.getFechaCita());
-        entity.setHoraCita(request.getHoraCita());
-        entity.setMotivoCita(request.getMotivoCita());
-        entity.setEstadoCita(request.getEstadoCita());
-        entity.setObservacionesCita(request.getObservacionesCita());
-        entity.setDuracionEstimada(request.getDuracionEstimada());
-
-        PatientEntity patient = new PatientEntity();
-        patient.setId(request.getPatientId());
-        entity.setPatient(patient);
-
-        AppointmentStatusEntity status = new AppointmentStatusEntity();
-        status.setId(request.getAppointmentStatusId());
-        entity.setAppointmentStatus(status);
+    private void updateEntityFromRequest(AppointmentEntity entity, UpdateAppointmentRequest request) {
+        if (request.getFechaCita() != null) {
+            entity.setFechaCita(request.getFechaCita());
+        }
+        if (request.getHoraCita() != null) {
+            entity.setHoraCita(request.getHoraCita());
+        }
+        if (request.getMotivoCita() != null) {
+            entity.setMotivoCita(request.getMotivoCita());
+        }
+        if (request.getObservacionesCita() != null) {
+            entity.setObservacionesCita(request.getObservacionesCita());
+        }
+        if (request.getDuracionEstimada() != null) {
+            entity.setDuracionEstimada(request.getDuracionEstimada());
+        }
+        if (request.getPatientId() != null) {
+            PatientEntity patient = new PatientEntity();
+            patient.setId(request.getPatientId());
+            entity.setPatient(patient);
+        }
+        if (request.getAppointmentStatusId() != null) {
+            AppointmentStatusEntity status = findStatusById(request.getAppointmentStatusId());
+            validateTransition(currentStatusName(entity), status.getStatus());
+            applyStatus(entity, status);
+        }
     }
 
     private AppointmentResponse mapToResponse(AppointmentEntity entity) {
@@ -413,35 +306,69 @@ public class AppointmentUseCase {
                 .fechaCita(entity.getFechaCita())
                 .horaCita(entity.getHoraCita())
                 .motivoCita(entity.getMotivoCita())
-                .estadoCita(entity.getEstadoCita())
                 .observacionesCita(entity.getObservacionesCita())
                 .duracionEstimada(entity.getDuracionEstimada())
-                .patientId(patient.getId())
-                .patientNombre(patient.getNombre())
-                .patientApellido(patient.getApellido())
-                .patientCi(patient.getCiPaciente())
-                .patientEmail(patient.getEmail())
-                .patientDireccion(patient.getDireccion())
-                .appointmentStatusId(entity.getAppointmentStatus().getId())
-                .appointmentStatusName(entity.getAppointmentStatus().getStatus())
+                .patient(AppointmentPatientSummaryResponse.builder()
+                        .id(patient.getId())
+                        .nombre(patient.getNombre())
+                        .apellido(patient.getApellido())
+                        .ciPaciente(patient.getCiPaciente())
+                        .email(patient.getEmail())
+                        .direccion(patient.getDireccion())
+                        .build())
+                .status(AppointmentStatusSummaryResponse.builder()
+                        .id(entity.getAppointmentStatus().getId())
+                        .name(entity.getAppointmentStatus().getStatus())
+                        .build())
                 .build();
     }
 
-    private AppointmentCalendarResponse mapToCalendarResponse(AppointmentEntity entity) {
-        PatientEntity patient = entity.getPatient();
-        String fullName = ((patient.getNombre() == null ? "" : patient.getNombre()) + " " +
-                (patient.getApellido() == null ? "" : patient.getApellido())).trim();
+    private void validateCreateRequest(CreateAppointmentRequest request) {
+        if (request == null) {
+            throw new InvalidAppointmentException("El body de la cita es requerido");
+        }
+        if (request.getPatientId() == null) {
+            throw new InvalidAppointmentException("patientId es requerido");
+        }
+        if (request.getFechaCita() == null || request.getHoraCita() == null) {
+            throw new InvalidAppointmentException("fechaCita y horaCita son requeridas");
+        }
+    }
 
-        return AppointmentCalendarResponse.builder()
-                .id(entity.getId())
-                .fechaCita(entity.getFechaCita())
-                .horaCita(entity.getHoraCita())
-                .duracionEstimada(entity.getDuracionEstimada())
-                .patientId(patient.getId())
-                .patientNombreCompleto(fullName)
-                .appointmentStatusId(entity.getAppointmentStatus().getId())
-                .appointmentStatusName(entity.getAppointmentStatus().getStatus())
-                .build();
+    private void validateUpdateRequest(UpdateAppointmentRequest request) {
+        if (request == null) {
+            throw new InvalidAppointmentException("El body de actualizacion es requerido");
+        }
+        if (allFieldsNull(request)) {
+            throw new InvalidAppointmentException("Debe enviar al menos un campo para actualizar");
+        }
+    }
+
+    private boolean allFieldsNull(UpdateAppointmentRequest request) {
+        return request.getPatientId() == null
+                && request.getFechaCita() == null
+                && request.getHoraCita() == null
+                && request.getMotivoCita() == null
+                && request.getDuracionEstimada() == null
+                && request.getObservacionesCita() == null
+                && request.getAppointmentStatusId() == null;
+    }
+
+    private void validateDateFilters(Date fromDate, Date toDate, Date exactDate) {
+        if (exactDate != null && (fromDate != null || toDate != null)) {
+            throw new InvalidAppointmentException("No puede combinar date con from/to");
+        }
+        if (fromDate != null && toDate != null && fromDate.after(toDate)) {
+            throw new InvalidAppointmentException("El rango de fechas es invalido");
+        }
+    }
+
+    private String normalizeStatusName(String statusName) {
+        if (statusName == null || statusName.isBlank()) {
+            return null;
+        }
+        String normalizedStatus = statusName.trim().toUpperCase(Locale.ROOT);
+        findStatusByName(normalizedStatus);
+        return normalizedStatus;
     }
 }
-

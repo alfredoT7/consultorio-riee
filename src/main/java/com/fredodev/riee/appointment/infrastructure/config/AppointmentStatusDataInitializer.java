@@ -10,7 +10,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -19,11 +22,8 @@ public class AppointmentStatusDataInitializer implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(AppointmentStatusDataInitializer.class);
 
     private static final List<String> DEFAULT_STATUSES = List.of(
-            "PENDIENTE",
+            "PROGRAMADA",
             "CONFIRMADA",
-            "REPROGRAMADA",
-            "EN_ESPERA",
-            "EN_CURSO",
             "COMPLETADA",
             "CANCELADA",
             "NO_ASISTIO"
@@ -34,17 +34,26 @@ public class AppointmentStatusDataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        for (String status : DEFAULT_STATUSES) {
-            var existing = appointmentStatusRepository.findByStatus(status);
-            if (existing.isPresent()) {
-                var e = existing.get();
-                log.info("Appointment status already exists: status='{}', id={}", e.getStatus(), e.getId());
-            } else {
-                AppointmentStatusEntity saved = appointmentStatusRepository.save(
-                        AppointmentStatusEntity.builder().status(status).build()
-                );
-                log.info("Appointment status created: status='{}', id={}", saved.getStatus(), saved.getId());
-            }
+        List<AppointmentStatusEntity> existingEntities = appointmentStatusRepository.findByStatusIn(DEFAULT_STATUSES);
+
+        Set<String> existingStatuses = existingEntities.stream()
+                .map(AppointmentStatusEntity::getStatus)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        existingEntities.forEach(entity ->
+                log.info("Appointment status verified: status='{}', id={}", entity.getStatus(), entity.getId())
+        );
+
+        List<AppointmentStatusEntity> missingStatuses = DEFAULT_STATUSES.stream()
+                .filter(status -> !existingStatuses.contains(status))
+                .map(status -> AppointmentStatusEntity.builder().status(status).build())
+                .toList();
+
+        if (!missingStatuses.isEmpty()) {
+            List<AppointmentStatusEntity> savedStatuses = appointmentStatusRepository.saveAll(missingStatuses);
+            savedStatuses.forEach(entity ->
+                    log.info("Appointment status created: status='{}', id={}", entity.getStatus(), entity.getId())
+            );
         }
     }
 }

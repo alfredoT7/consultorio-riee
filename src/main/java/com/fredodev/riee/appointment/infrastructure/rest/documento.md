@@ -1,272 +1,155 @@
-# Modulo REST de Citas (`appointment/infrastructure/rest`)
+# Endpoints REST de Citas
 
-Este documento explica que hace cada controlador del paquete, que endpoints expone, que parametros requiere y que retorna.
+Base path: `/api/v1/riee/appointments`
 
-## Convenciones generales
+## Convenciones
 
-- Base de respuestas: `ApiResponse<T>`
-- URL base local completa: `http://localhost:8080/api/v1/riee`
-- Estructura de exito:
-  - `success`: `true`
-  - `status`: codigo HTTP
-  - `message`: mensaje descriptivo
-  - `data`: payload del endpoint
-  - `timestamp`: fecha/hora de respuesta
-- Estructura de error:
-  - `success`: `false`
-  - `status`: codigo HTTP de error
-  - `message`: mensaje general de error
-  - `errors`: lista con detalle(s) del error
-  - `data`: `null`
-  - `timestamp`: fecha/hora de respuesta
-- CORS: todos los controladores usan `@CrossOrigin(origins = "*")`
+- Respuestas exitosas usan `ApiResponse<T>`, excepto `DELETE` que retorna `204 No Content` sin body.
+- Fechas: `yyyy-MM-dd`
+- Horas: `HH:mm:ss`
+- Las citas pueden programarse a cualquier hora del dia
+- Granularidad fija de slots: `15` minutos
 
----
+## 1. GET `/appointments`
 
-## 1) `AppointmentController`
+Lista citas y permite filtros opcionales.
 
-**Archivo:** `AppointmentController.java`  
-**Base path:** `/appointments`  
-**Objetivo:** CRUD de citas + consultas para calendario/filtros.
+### Query params
 
-### Endpoints
+- `from`: fecha inicial opcional
+- `to`: fecha final opcional
+- `date`: fecha exacta opcional
+- `status`: nombre de estado opcional, por ejemplo `PROGRAMADA`, `CONFIRMADA`, `CANCELADA`
 
-### `POST /appointments`
-- **Uso:** crear una cita.
-- **Body (`AppointmentRequest`):**
-  - `fechaCita` (Date, requerido)
-  - `horaCita` (Time, requerido)
-  - `motivoCita` (String)
-  - `estadoCita` (String)
-  - `observacionesCita` (String)
-  - `duracionEstimada` (Long, minutos)
-  - `patientId` (Long, requerido)
-  - `appointmentStatusId` (Long, requerido)
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-- **HTTP:** `201 CREATED`
+### Reglas
 
-### `GET /appointments/{id}`
-- **Uso:** obtener cita por id.
-- **Path param:** `id` (Long)
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-- **HTTP:** `200 OK`
+- No se puede combinar `date` con `from` o `to`
+- Si `from > to`, responde `400`
 
-### `GET /appointments`
-- **Uso:** listar todas las citas.
-- **Respuesta:** `ApiResponse<List<AppointmentResponse>>`
-- **HTTP:** `200 OK`
+### Response `200`
 
-### `GET /appointments/search`
-- **Uso:** filtrar citas.
-- **Query params (opcionales):**
-  - `from` (`yyyy-MM-dd`)
-  - `to` (`yyyy-MM-dd`)
-  - `patientCi` (Integer)
-  - `patientId` (Long)
-  - `appointmentStatusId` (Long)
-- **Respuesta:** `ApiResponse<List<AppointmentResponse>>`
-- **HTTP:** `200 OK`
-
-### `GET /appointments/calendar`
-- **Uso:** vista ligera para pintar calendario.
-- **Query params (opcionales):** iguales a `/search`
-- **Respuesta:** `ApiResponse<List<AppointmentCalendarResponse>>`
-- **HTTP:** `200 OK`
-
-### `GET /appointments/day?date=yyyy-MM-dd`
-- **Uso:** agenda de un dia.
-- **Query param (requerido):** `date` (`yyyy-MM-dd`)
-- **Respuesta:** `ApiResponse<List<AppointmentResponse>>`
-- **HTTP:** `200 OK`
-
-### `PUT /appointments/{id}`
-- **Uso:** actualizar cita completa.
-- **Path param:** `id` (Long)
-- **Body:** `AppointmentRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-- **HTTP:** `200 OK`
-
-### `DELETE /appointments/{id}`
-- **Uso:** eliminar cita.
-- **Path param:** `id` (Long)
-- **Respuesta:** `ApiResponse<Void>`
-- **HTTP:** `200 OK`
-
-### `GET /appointments/patient/{ciPaciente}`
-- **Uso:** listar citas por CI de paciente.
-- **Path param:** `ciPaciente` (int)
-- **Respuesta:** `ApiResponse<List<AppointmentResponse>>`
-- **HTTP:** `200 OK`
-
----
-
-## 2) `AppointmentWorkflowController`
-
-**Archivo:** `AppointmentWorkflowController.java`  
-**Base path:** `/appointments/{id}`  
-**Objetivo:** operaciones de flujo/estado de una cita (acciones de negocio).
-
-### Endpoints
-
-### `PATCH /appointments/{id}/confirm`
-- **Uso:** cambia estado a `CONFIRMADA`.
-- **Body opcional:** `AppointmentStatusActionRequest` (`observacionesCita`)
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/check-in`
-- **Uso:** cambia estado a `EN_ESPERA`.
-- **Body opcional:** `AppointmentStatusActionRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/start`
-- **Uso:** cambia estado a `EN_CURSO`.
-- **Body opcional:** `AppointmentStatusActionRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/complete`
-- **Uso:** cambia estado a `COMPLETADA`.
-- **Body opcional:** `AppointmentStatusActionRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/cancel`
-- **Uso:** cambia estado a `CANCELADA`.
-- **Body opcional:** `AppointmentStatusActionRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/no-show`
-- **Uso:** cambia estado a `NO_ASISTIO`.
-- **Body opcional:** `AppointmentStatusActionRequest`
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/reschedule`
-- **Uso:** reprogramar cita (fecha/hora) y marcar estado `REPROGRAMADA`.
-- **Body requerido (`AppointmentRescheduleRequest`):**
-  - `fechaCita` (Date)
-  - `horaCita` (Time)
-  - `observacionesCita` (String)
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-### `PATCH /appointments/{id}/status`
-- **Uso:** cambio de estado generico por id de estado.
-- **Body requerido (`AppointmentStatusActionRequest`):**
-  - `appointmentStatusId` (Long)
-  - `observacionesCita` (String)
-- **Respuesta:** `ApiResponse<AppointmentResponse>`
-
-**HTTP para todos los endpoints del workflow:** `200 OK`
-
----
-
-## 3) `AppointmentAvailabilityController`
-
-**Archivo:** `AppointmentAvailabilityController.java`  
-**Base path:** `/appointments/availability`  
-**Objetivo:** disponibilidad y validacion de conflictos de horario.
-
-### Endpoints
-
-### `GET /appointments/availability/slots`
-- **Uso:** obtener bloques disponibles de agenda.
-- **Query params:**
-  - `date` (`yyyy-MM-dd`, requerido)
-  - `durationMinutes` (Integer, opcional, default interno: 30)
-  - `slotMinutes` (Integer, opcional, default interno: 30)
-- **Respuesta:** `ApiResponse<List<AvailabilitySlotResponse>>`
-  - cada slot incluye `startTime` y `endTime` (`HH:mm[:ss]`)
-- **HTTP:** `200 OK`
-
-### `GET /appointments/availability/conflict`
-- **Uso:** validar si un horario entra en conflicto con citas existentes.
-- **Query params:**
-  - `date` (`yyyy-MM-dd`, requerido)
-  - `time` (`HH:mm[:ss]`, requerido)
-  - `durationMinutes` (Integer, opcional)
-  - `excludeAppointmentId` (Long, opcional; util para update)
-- **Respuesta:** `ApiResponse<Boolean>`
-  - `true` = hay conflicto
-  - `false` = no hay conflicto
-- **HTTP:** `200 OK`
-
----
-
-## 4) `AppointmentStatusController`
-
-**Archivo:** `AppointmentStatusController.java`  
-**Base path:** `/appointment-statuses`  
-**Objetivo:** exponer catalogo de estados de cita para combos del frontend.
-
-### Endpoints
-
-### `GET /appointment-statuses`
-- **Uso:** listar estados disponibles.
-- **Respuesta:** `ApiResponse<List<AppointmentStatusResponse>>`
-  - `id`
-  - `status`
-- **HTTP:** `200 OK`
-
----
-
-## Reglas funcionales importantes (resumen)
-
-Estas reglas viven en `AppointmentUseCase` y afectan varios endpoints:
-
-- No permite crear/actualizar/reprogramar en fechas pasadas.
-- No permite horas pasadas si la fecha es hoy.
-- Horario permitido: `08:00` a `18:00`.
-- Valida conflictos por traslape de horario usando `duracionEstimada`.
-- Transiciones de estado validadas (ejemplo: `PENDIENTE -> CONFIRMADA`, etc.).
-
----
-
-## Estandar de errores del modulo de citas
-
-Los controladores de este paquete manejan errores con `ApiResponse` a traves de `AppointmentExceptionHandler`.
-
-- `404 NOT_FOUND`: cita no encontrada (`AppointmentNotFoundException`)
-- `409 CONFLICT`: conflicto de horario o duplicidad (`DuplicateAppointmentException`)
-- `400 BAD_REQUEST`: reglas de validacion de cita (`InvalidAppointmentException`)
-- `500 INTERNAL_SERVER_ERROR`: error no controlado
-
----
-
-## DTOs principales usados por REST
-
-- `AppointmentRequest`
-- `AppointmentResponse`
-- `AppointmentFilterRequest`
-- `AppointmentCalendarResponse`
-- `AppointmentStatusActionRequest`
-- `AppointmentRescheduleRequest`
-- `AvailabilitySlotResponse`
-- `AppointmentStatusResponse`
-
----
-
-## Ejemplos rapidos (frontend)
-
-### Buscar por rango
-`GET http://localhost:8080/api/v1/riee/appointments/search?from=2026-05-01&to=2026-05-31&appointmentStatusId=2`
-
-### Agenda del dia
-`GET http://localhost:8080/api/v1/riee/appointments/day?date=2026-05-01`
-
-### Horarios disponibles
-`GET http://localhost:8080/api/v1/riee/appointments/availability/slots?date=2026-05-01&durationMinutes=30&slotMinutes=30`
-
-### Confirmar cita
-`PATCH http://localhost:8080/api/v1/riee/appointments/15/confirm`
-
-### Reprogramar cita
-`PATCH http://localhost:8080/api/v1/riee/appointments/15/reschedule`
-Body:
 ```json
 {
-  "fechaCita": "2026-05-10",
-  "horaCita": "10:30:00",
-  "observacionesCita": "Paciente solicita cambio por viaje"
+  "success": true,
+  "status": 200,
+  "message": "Citas encontradas",
+  "data": [
+    {
+      "id": 15,
+      "fechaCita": "2026-05-10",
+      "horaCita": "10:30:00",
+      "motivoCita": "Control",
+      "observacionesCita": "Traer radiografia",
+      "duracionEstimada": 30,
+      "patient": {
+        "id": 4,
+        "nombre": "Ana",
+        "apellido": "Lopez",
+        "ciPaciente": 1234567,
+        "email": "ana@email.com",
+        "direccion": "Zona Sur"
+      },
+      "status": {
+        "id": 2,
+        "name": "CONFIRMADA"
+      }
+    }
+  ]
 }
 ```
 
-### Crear cita
-`POST http://localhost:8080/api/v1/riee/appointments`
+## 2. POST `/appointments`
 
+Crea una cita.
+
+### Body
+
+```json
+{
+  "patientId": 4,
+  "fechaCita": "2026-05-10",
+  "horaCita": "10:30:00",
+  "motivoCita": "Control",
+  "duracionEstimada": 30,
+  "observacionesCita": "Traer radiografia"
+}
+```
+
+### Response `201`
+
+Retorna la cita creada con la misma estructura nested de `GET /appointments`.
+Si no se envia `appointmentStatusId`, el backend asigna automaticamente `PROGRAMADA`.
+
+## 3. PUT `/appointments/{id}`
+
+Actualiza parcialmente una cita.
+
+### Body
+
+Todos los campos son opcionales. Debe venir al menos uno.
+
+```json
+{
+  "horaCita": "11:00:00",
+  "duracionEstimada": 45,
+  "appointmentStatusId": 3,
+  "observacionesCita": "Paciente solicito ajuste"
+}
+```
+
+### Response `200`
+
+Retorna la cita actualizada con la misma estructura nested de `GET /appointments`.
+
+## 4. DELETE `/appointments/{id}`
+
+Elimina una cita.
+
+### Response `204`
+
+Sin body.
+
+## 5. GET `/appointments/slots`
+
+Devuelve horarios disponibles para una fecha.
+
+### Query params
+
+- `date`: requerido
+- `duration`: opcional, default `30`
+
+### Response `200`
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Horarios disponibles encontrados",
+    "data": [
+      {
+      "startTime": "00:00",
+      "endTime": "00:30"
+    },
+    {
+      "startTime": "00:15",
+      "endTime": "00:45"
+    }
+  ]
+}
+```
+
+## Reglas de negocio
+
+- No se crean ni actualizan citas en el pasado
+- Si la fecha es hoy, la hora no puede ser anterior a la actual
+- Se valida solapamiento usando `duracionEstimada`
+- En creacion, si no se envia `appointmentStatusId`, se usa `PROGRAMADA`
+- En update, `appointmentStatusId` sigue siendo opcional y solo cambia estado si viene informado
+- Cambios de estado siguen reglas de transición del backend
+
+## Errores
+
+- `400 Bad Request`: filtros inválidos, formato inválido, transición inválida, datos incompletos
+- `404 Not Found`: cita inexistente
+- `409 Conflict`: solapamiento de horario
+- `500 Internal Server Error`: error no controlado

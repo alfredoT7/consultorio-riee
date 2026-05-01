@@ -5,7 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Data
@@ -13,12 +14,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApiResponse<T> {
+    private static final ZoneId API_ZONE = ZoneId.of("America/La_Paz");
+
     private boolean success;
     private int status;
     private String message;
     private T data;
     private List<String> errors;
-    private Instant timestamp = Instant.now();
+    private OffsetDateTime timestamp = OffsetDateTime.now(API_ZONE);
 
     public static <T> ApiResponse<T> ok(int status, String message, T data) {
         return ApiResponse.<T>builder()
@@ -26,7 +29,7 @@ public class ApiResponse<T> {
                 .status(status)
                 .message(message)
                 .data(data)
-                .timestamp(Instant.now())
+                .timestamp(OffsetDateTime.now(API_ZONE))
                 .build();
     }
 
@@ -36,7 +39,7 @@ public class ApiResponse<T> {
                 .status(status)
                 .message(message)
                 .errors(errors)
-                .timestamp(Instant.now())
+                .timestamp(OffsetDateTime.now(API_ZONE))
                 .build();
     }
 }

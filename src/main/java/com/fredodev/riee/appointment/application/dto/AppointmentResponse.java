@@ -17,15 +17,8 @@ public class AppointmentResponse {
     private Date fechaCita;
     private Time horaCita;
     private String motivoCita;
-    private String estadoCita;
     private String observacionesCita;
     private Long duracionEstimada;
-    private Long patientId;
-    private String patientNombre;
-    private String patientApellido;
-    private long patientCi;
-    private String patientEmail;
-    private String patientDireccion;
-    private Long appointmentStatusId;
-    private String appointmentStatusName;
+    private AppointmentPatientSummaryResponse patient;
+    private AppointmentStatusSummaryResponse status;
 }

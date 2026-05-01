@@ -36,15 +36,11 @@ public class AppointmentDomainService {
         appointmentRepository.deleteById(id);
     }
 
-    public List<AppointmentEntity> findByCiPaciente(int ciPaciente) {
-        return appointmentRepository.findByCiPaciente(ciPaciente);
-    }
-
     public List<AppointmentEntity> findByFechaCita(Date fechaCita) {
         return appointmentRepository.findByFechaCita(fechaCita);
     }
 
-    public List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, Integer ciPaciente, Long patientId, Long appointmentStatusId) {
-        return appointmentRepository.findByFilters(fromDate, toDate, ciPaciente, patientId, appointmentStatusId);
+    public List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, String statusName) {
+        return appointmentRepository.findByFilters(fromDate, toDate, statusName);
     }
 }

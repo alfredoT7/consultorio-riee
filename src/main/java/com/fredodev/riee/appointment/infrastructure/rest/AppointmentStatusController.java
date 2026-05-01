@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/appointment-statuses")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AppointmentStatusController {
 
     private final AppointmentService appointmentService;
@@ -27,4 +27,3 @@ public class AppointmentStatusController {
         return ResponseEntity.ok(ApiResponse.ok(HttpStatus.OK.value(), "Estados de cita encontrados", statuses));
     }
 }
-

@@ -1,5 +1,7 @@
 package com.fredodev.riee.appointment.application.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fredodev.riee.appointment.infrastructure.json.SqlTimeFlexibleDeserializer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,14 +14,13 @@ import java.sql.Time;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppointmentCalendarResponse {
-    private Long id;
-    private Date fechaCita;
-    private Time horaCita;
-    private Long duracionEstimada;
+public class CreateAppointmentRequest {
     private Long patientId;
-    private String patientNombreCompleto;
+    private Date fechaCita;
+    @JsonDeserialize(using = SqlTimeFlexibleDeserializer.class)
+    private Time horaCita;
+    private String motivoCita;
+    private Long duracionEstimada;
+    private String observacionesCita;
     private Long appointmentStatusId;
-    private String appointmentStatusName;
 }
-
