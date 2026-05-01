@@ -11,7 +11,6 @@ public interface AppointmentRepository {
     boolean existsById(Long id);
     List<AppointmentEntity> findAll();
     void deleteById(Long id);
-    List<AppointmentEntity> findByCiPaciente(int ciPaciente);
     List<AppointmentEntity> findByFechaCita(Date fechaCita);
-    List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, Integer ciPaciente, Long patientId, Long appointmentStatusId);
+    List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, String statusName);
 }

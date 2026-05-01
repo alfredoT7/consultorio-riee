@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppointmentStatusActionRequest {
-    private Long appointmentStatusId;
-    private String observacionesCita;
+public class AppointmentStatusSummaryResponse {
+    private Long id;
+    private String name;
 }
-

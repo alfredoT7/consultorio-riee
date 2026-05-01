@@ -13,4 +13,3 @@ public class AppointmentStatusResponse {
     private Long id;
     private String status;
 }
-

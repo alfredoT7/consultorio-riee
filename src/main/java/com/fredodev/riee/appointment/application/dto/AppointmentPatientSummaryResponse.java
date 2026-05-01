@@ -5,17 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Date;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AppointmentFilterRequest {
-    private Date fromDate;
-    private Date toDate;
-    private Integer patientCi;
-    private Long patientId;
-    private Long appointmentStatusId;
+public class AppointmentPatientSummaryResponse {
+    private Long id;
+    private String nombre;
+    private String apellido;
+    private long ciPaciente;
+    private String email;
+    private String direccion;
 }
-
