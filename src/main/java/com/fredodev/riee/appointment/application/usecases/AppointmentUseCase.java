@@ -127,7 +127,7 @@ public class AppointmentUseCase {
         List<AppointmentEntity> appointments = appointmentDomainService.findByFechaCita(fechaCita);
 
         List<AvailabilitySlotResponse> slots = new java.util.ArrayList<>();
-        for (int cursorMinutes = DAY_START_MINUTES; cursorMinutes + normalizedDuration <= DAY_END_MINUTES; cursorMinutes += SLOT_GRANULARITY_MINUTES) {
+        for (int cursorMinutes = DAY_START_MINUTES; cursorMinutes + normalizedDuration < DAY_END_MINUTES; cursorMinutes += SLOT_GRANULARITY_MINUTES) {
             LocalTime cursor = toLocalTime(cursorMinutes);
             LocalTime slotEnd = toLocalTime(cursorMinutes + normalizedDuration);
             if (!hasTimeConflict(appointments, cursor, slotEnd, null)) {
