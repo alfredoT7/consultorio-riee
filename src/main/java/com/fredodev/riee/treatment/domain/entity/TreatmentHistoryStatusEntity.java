@@ -18,7 +18,7 @@ public class TreatmentHistoryStatusEntity {
     private Long id;
 
     @Column(name = "name", nullable = false)
-    private String nombreEstadp;
+    private String nombreEstado;
 
     @Column(name = "description")
     private String descripcion;
