@@ -32,6 +32,10 @@ public class AppointmentDomainService {
         return appointmentRepository.findAll();
     }
 
+    public List<AppointmentEntity> findByPatientIdOrderByFechaCitaAscHoraCitaAsc(Long patientId) {
+        return appointmentRepository.findByPatientIdOrderByFechaCitaAscHoraCitaAsc(patientId);
+    }
+
     public void deleteById(Long id) {
         appointmentRepository.deleteById(id);
     }

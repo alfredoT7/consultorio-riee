@@ -4,6 +4,7 @@ import com.fredodev.riee.patient.application.dto.PatientClinicalInfoRequest;
 import com.fredodev.riee.patient.application.dto.PatientClinicalInfoResponse;
 import com.fredodev.riee.patient.application.dto.PatientCompleteResponse;
 import com.fredodev.riee.patient.application.dto.PatientRequest;
+import com.fredodev.riee.patient.application.dto.PatientNextAppointmentResponse;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireRequest;
 import com.fredodev.riee.patient.application.dto.PatientQuestionnaireResponse;
 import com.fredodev.riee.patient.application.dto.PatientResponse;
@@ -12,6 +13,8 @@ import com.fredodev.riee.patient.application.dto.PhoneNumberResponse;
 import com.fredodev.riee.patient.application.dto.CivilStatusResponse;
 import com.fredodev.riee.cloudinary.application.dto.CloudinaryUploadResponse;
 import com.fredodev.riee.cloudinary.application.service.CloudinaryService;
+import com.fredodev.riee.appointment.domain.entity.AppointmentEntity;
+import com.fredodev.riee.appointment.domain.service.AppointmentDomainService;
 import com.fredodev.riee.patient.domain.clasifications.CivilStatusType;
 import com.fredodev.riee.patient.domain.entity.CivilStatusEntity;
 import com.fredodev.riee.patient.application.adapter.PatientAdapter;
@@ -34,11 +37,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 public class PatientService {
     private static final String PATIENT_IMAGE_FOLDER = "riee/patients";
+    private static final ZoneId APPOINTMENT_ZONE = ZoneId.of("America/La_Paz");
 
     private final PatientDomainService patientDomainService;
     private final PatientAdapter patientAdapter;
@@ -47,6 +54,7 @@ public class PatientService {
     private final PatientQuestionnaireRepository patientQuestionnaireRepository;
     private final CivilStatusRepository civilStatusRepository;
     private final CloudinaryService cloudinaryService;
+    private final AppointmentDomainService appointmentDomainService;
 
     public PatientService(
             PatientDomainService patientDomainService,
@@ -55,7 +63,8 @@ public class PatientService {
             PatientClinicalInfoRepository patientClinicalInfoRepository,
             PatientQuestionnaireRepository patientQuestionnaireRepository,
             CivilStatusRepository civilStatusRepository,
-            CloudinaryService cloudinaryService
+            CloudinaryService cloudinaryService,
+            AppointmentDomainService appointmentDomainService
     ) {
         this.patientDomainService = patientDomainService;
         this.patientAdapter = patientAdapter;
@@ -64,6 +73,7 @@ public class PatientService {
         this.patientQuestionnaireRepository = patientQuestionnaireRepository;
         this.civilStatusRepository = civilStatusRepository;
         this.cloudinaryService = cloudinaryService;
+        this.appointmentDomainService = appointmentDomainService;
     }
 
 
@@ -343,6 +353,53 @@ public class PatientService {
                 .phonesNumbers(patient.getPhonesNumbers().stream()
                         .map(this::mapPhoneNumberResponse)
                         .toList())
+                .proximaCita(mapNextAppointmentResponse(patient.getId()))
+                .build();
+    }
+
+    private PatientNextAppointmentResponse mapNextAppointmentResponse(Long patientId) {
+        if (patientId == null) {
+            return buildNoNextAppointmentResponse();
+        }
+
+        LocalDate today = LocalDate.now(APPOINTMENT_ZONE);
+        LocalTime now = LocalTime.now(APPOINTMENT_ZONE);
+
+        return appointmentDomainService.findByPatientIdOrderByFechaCitaAscHoraCitaAsc(patientId).stream()
+                .filter(appointment -> isUpcomingAppointment(appointment, today, now))
+                .findFirst()
+                .map(this::mapNextAppointmentResponse)
+                .orElseGet(this::buildNoNextAppointmentResponse);
+    }
+
+    private boolean isUpcomingAppointment(AppointmentEntity appointment, LocalDate today, LocalTime now) {
+        if (appointment == null || appointment.getFechaCita() == null || appointment.getHoraCita() == null) {
+            return false;
+        }
+
+        LocalDate appointmentDate = appointment.getFechaCita().toLocalDate();
+        LocalTime appointmentTime = appointment.getHoraCita().toLocalTime();
+
+        return appointmentDate.isAfter(today) || (appointmentDate.isEqual(today) && !appointmentTime.isBefore(now));
+    }
+
+    private PatientNextAppointmentResponse mapNextAppointmentResponse(AppointmentEntity appointment) {
+        return PatientNextAppointmentResponse.builder()
+                .id(appointment.getId())
+                .fechaCita(appointment.getFechaCita())
+                .horaCita(appointment.getHoraCita())
+                .motivoCita(appointment.getMotivoCita())
+                .estadoCita(appointment.getEstadoCita())
+                .duracionEstimada(appointment.getDuracionEstimada())
+                .tieneCita(true)
+                .mensaje("Próxima cita encontrada")
+                .build();
+    }
+
+    private PatientNextAppointmentResponse buildNoNextAppointmentResponse() {
+        return PatientNextAppointmentResponse.builder()
+                .tieneCita(false)
+                .mensaje("El paciente no tiene citas programadas")
                 .build();
     }
 

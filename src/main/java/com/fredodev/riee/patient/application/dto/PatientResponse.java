@@ -27,4 +27,5 @@ public class PatientResponse {
     private String nombre;
     private String apellido;
     private List<PhoneNumberResponse> phonesNumbers;
+    private PatientNextAppointmentResponse proximaCita;
 }

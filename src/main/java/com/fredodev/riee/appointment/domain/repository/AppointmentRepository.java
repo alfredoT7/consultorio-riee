@@ -10,6 +10,7 @@ public interface AppointmentRepository {
     AppointmentEntity findById(Long id);
     boolean existsById(Long id);
     List<AppointmentEntity> findAll();
+    List<AppointmentEntity> findByPatientIdOrderByFechaCitaAscHoraCitaAsc(Long patientId);
     void deleteById(Long id);
     List<AppointmentEntity> findByFechaCita(Date fechaCita);
     List<AppointmentEntity> findByFilters(Date fromDate, Date toDate, String statusName);
