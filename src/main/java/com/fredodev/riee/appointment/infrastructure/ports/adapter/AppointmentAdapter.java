@@ -38,6 +38,11 @@ public class AppointmentAdapter implements AppointmentRepository {
     }
 
     @Override
+    public List<AppointmentEntity> findByPatientIdOrderByFechaCitaAscHoraCitaAsc(Long patientId) {
+        return jpaAppointmentRepository.findByPatientIdOrderByFechaCitaAscHoraCitaAsc(patientId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         jpaAppointmentRepository.deleteById(id);
     }
