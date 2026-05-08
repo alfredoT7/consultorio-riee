@@ -41,4 +41,16 @@ public class TreatmentHistoryRequest {
     private Double descuentoTotalTratamiento = 0.0;
 
     private List<Long> dentalPieceIds;
+
+    @Min(value = 0, message = "El total de sesiones no puede ser negativo")
+    private Integer sessionsTotal;
+
+    @Size(max = 50, message = "La prioridad debe tener máximo 50 caracteres")
+    private String priority;
+
+    @Size(max = 50, message = "El nivel de riesgo debe tener máximo 50 caracteres")
+    private String riskLevel;
+
+    @Size(max = 50, message = "El código diagnóstico debe tener máximo 50 caracteres")
+    private String diagnosisCode;
 }

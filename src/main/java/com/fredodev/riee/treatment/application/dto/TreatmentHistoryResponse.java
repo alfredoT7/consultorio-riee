@@ -30,4 +30,12 @@ public class TreatmentHistoryResponse {
     private String estadoNombre;
     private List<DentalPieceResponse> dentalPieces;
     private LocalDateTime createdAt;
+    private TreatmentResponse treatment;
+    private Integer sessionsTotal;
+    private Integer sessionsCompleted;
+    private Integer progress;
+    private String priority;
+    private String riskLevel;
+    private String diagnosisCode;
+    private LocalDateTime updatedAt;
 }

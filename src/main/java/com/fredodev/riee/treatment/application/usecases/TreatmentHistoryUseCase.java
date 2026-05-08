@@ -3,6 +3,7 @@ package com.fredodev.riee.treatment.application.usecases;
 import com.fredodev.riee.treatment.application.dto.DentalPieceResponse;
 import com.fredodev.riee.treatment.application.dto.TreatmentHistoryRequest;
 import com.fredodev.riee.treatment.application.dto.TreatmentHistoryResponse;
+import com.fredodev.riee.treatment.application.dto.TreatmentResponse;
 import com.fredodev.riee.treatment.domain.entity.DentalPieceEntity;
 import com.fredodev.riee.treatment.domain.entity.TreatmentEntity;
 import com.fredodev.riee.treatment.domain.entity.TreatmentHistoryEntity;
@@ -64,6 +65,11 @@ public class TreatmentHistoryUseCase {
                 .saldoTotalTratamiento(request.getPrecioCosto())
                 .estadoTratamiento(estadoPendiente)
                 .dentalPieces(dentalPieces)
+                .sessionsTotal(request.getSessionsTotal())
+                .sessionsCompleted(0)
+                .priority(request.getPriority())
+                .riskLevel(request.getRiskLevel())
+                .diagnosisCode(request.getDiagnosisCode())
                 .build();
 
         TreatmentHistoryEntity saved = treatmentHistoryDomainService.saveTreatmentHistory(entity);
@@ -101,6 +107,11 @@ public class TreatmentHistoryUseCase {
             List<DentalPieceEntity> dentalPieces = dentalPieceRepository.findByIdIn(request.getDentalPieceIds());
             entity.setDentalPieces(dentalPieces);
         }
+
+        entity.setSessionsTotal(request.getSessionsTotal());
+        entity.setPriority(request.getPriority());
+        entity.setRiskLevel(request.getRiskLevel());
+        entity.setDiagnosisCode(request.getDiagnosisCode());
 
         TreatmentHistoryEntity saved = treatmentHistoryDomainService.saveTreatmentHistory(entity);
         return mapToResponse(saved);
@@ -142,9 +153,20 @@ public class TreatmentHistoryUseCase {
 
         String nombreTratamiento = null;
         Long treatmentId = null;
+        TreatmentResponse treatmentResponse = null;
         if (entity.getTreatment() != null) {
-            treatmentId = entity.getTreatment().getId();
-            nombreTratamiento = entity.getTreatment().getNombreTratamiento();
+            TreatmentEntity t = entity.getTreatment();
+            treatmentId = t.getId();
+            nombreTratamiento = t.getNombreTratamiento();
+            treatmentResponse = TreatmentResponse.builder()
+                    .id(t.getId())
+                    .nombreTratamiento(t.getNombreTratamiento())
+                    .descripcion(t.getDescripcion())
+                    .procedimiento(t.getProcedimiento())
+                    .semanasEstimadas(t.getSemanasEstimadas())
+                    .costoBaseTratamiento(t.getCostoBaseTratamiento())
+                    .notasAdicionales(t.getNotasAdicionales())
+                    .build();
         }
 
         Long estadoId = null;
@@ -152,6 +174,12 @@ public class TreatmentHistoryUseCase {
         if (entity.getEstadoTratamiento() != null) {
             estadoId = entity.getEstadoTratamiento().getId();
             estadoNombre = entity.getEstadoTratamiento().getNombreEstado();
+        }
+
+        int progress = 0;
+        if (entity.getSessionsTotal() != null && entity.getSessionsTotal() > 0
+                && entity.getSessionsCompleted() != null) {
+            progress = (int) Math.round((double) entity.getSessionsCompleted() / entity.getSessionsTotal() * 100);
         }
 
         return TreatmentHistoryResponse.builder()
@@ -170,6 +198,14 @@ public class TreatmentHistoryUseCase {
                 .estadoId(estadoId)
                 .estadoNombre(estadoNombre)
                 .dentalPieces(dentalPieceResponses)
+                .treatment(treatmentResponse)
+                .sessionsTotal(entity.getSessionsTotal())
+                .sessionsCompleted(entity.getSessionsCompleted())
+                .progress(progress)
+                .priority(entity.getPriority())
+                .riskLevel(entity.getRiskLevel())
+                .diagnosisCode(entity.getDiagnosisCode())
+                .updatedAt(entity.getUpdatedAt())
                 .build();
     }
 }

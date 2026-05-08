@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,6 +62,30 @@ public class TreatmentHistoryEntity {
     @ManyToOne
     @JoinColumn(name = "treatment_id")
     private TreatmentEntity treatment;
+
+    @Column(name = "sessions_total")
+    private Integer sessionsTotal;
+
+    @Column(name = "sessions_completed")
+    private Integer sessionsCompleted;
+
+    @Column(name = "priority", length = 50)
+    private String priority;
+
+    @Column(name = "risk_level", length = 50)
+    private String riskLevel;
+
+    @Column(name = "diagnosis_code", length = 50)
+    private String diagnosisCode;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     public void addRegistroPago(TreatmentPaymentEntity registroPago) {
         registrosPago.add(registroPago);
