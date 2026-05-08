@@ -6,6 +6,7 @@ import com.fredodev.riee.treatment.infrastructure.ports.persistence.JpaTreatment
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,11 @@ public class TreatmentHistoryStatusAdapter implements TreatmentHistoryStatusRepo
     }
 
     @Override
+    public List<TreatmentHistoryStatusEntity> saveAll(List<TreatmentHistoryStatusEntity> entities) {
+        return jpaRepository.saveAll(entities);
+    }
+
+    @Override
     public Optional<TreatmentHistoryStatusEntity> findById(Long id) {
         return jpaRepository.findById(id);
     }
@@ -28,6 +34,11 @@ public class TreatmentHistoryStatusAdapter implements TreatmentHistoryStatusRepo
     @Override
     public Optional<TreatmentHistoryStatusEntity> findByNombreEstado(String nombre) {
         return jpaRepository.findByNombreEstado(nombre);
+    }
+
+    @Override
+    public List<TreatmentHistoryStatusEntity> findByNombreEstadoIn(Collection<String> nombres) {
+        return jpaRepository.findByNombreEstadoIn(nombres);
     }
 
     @Override
